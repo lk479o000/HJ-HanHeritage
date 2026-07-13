@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>资源管理 — 管理后台</title>
+  <link rel="stylesheet" href="assets/admin.css" />
+  <link rel="stylesheet" href="assets/embed.css" />
+  <link rel="stylesheet" href="assets/resource-page.css" />
+  <script src="assets/embed.js"></script>
+</head>
+<body class="admin-body">
+  <div class="admin-root">
+    <aside class="admin-sidebar" id="admin-sidebar"></aside>
+    <div class="admin-wrap">
+      <header class="admin-topbar" id="admin-topbar"></header>
+      <main class="admin-main">
+        <h1 class="admin-page-title">资源管理</h1>
+        <p class="admin-page-desc">
+          多类型资源统一入库：<strong>数字文档、平面影像、三维模型、扫描数据、点云数据、成果数据</strong>等；支持上传、下载、删除、信息编辑、浏览、查询、统计。图片 / PDF / 视频 / 三维等可在<strong>不下载</strong>情况下在线预览（原型为浏览器能力演示）。左侧为<strong>三级以内</strong>动态资源目录（例：合江 → 三维模型 → 1号石棺），可新建、重命名、删除。
+        </p>
+
+        <div class="res-layout">
+          <aside class="res-tree-pane">
+            <div class="res-tree-head">资源目录</div>
+            <div class="res-tree-toolbar">
+              <button type="button" class="btn btn-primary" id="res-tree-add-root">新建根目录</button>
+            </div>
+            <div class="res-tree-scroll">
+              <div id="res-tree-root"></div>
+            </div>
+          </aside>
+          <section class="res-main">
+            <div class="res-stats-bar" id="res-stats-bar"></div>
+            <p class="res-breadcrumb" id="res-breadcrumb"></p>
+            <div class="res-toolbar">
+              <button type="button" class="btn btn-primary" id="res-btn-upload">上传</button>
+              <input type="file" id="res-file-input" multiple hidden />
+              <button type="button" class="btn" id="res-btn-batch-del">批量删除</button>
+              <button type="button" class="btn" id="res-btn-stats">统计</button>
+            </div>
+            <div class="res-filters">
+              <div class="admin-form-row" style="margin: 0; grid-column: 1 / -1">
+                <label class="admin-muted" style="font-size: 0.82rem">查询：名称 / 说明关键字</label>
+                <input type="search" class="admin-input" id="res-filter-keyword" placeholder="输入关键字筛选当前目录" />
+              </div>
+              <div class="admin-form-row" style="margin: 0">
+                <label class="admin-muted" style="font-size: 0.82rem">资源类型</label>
+                <select class="admin-select" id="res-filter-type">
+                  <option value="">全部类型</option>
+                  <option value="doc">数字文档</option>
+                  <option value="image">平面影像</option>
+                  <option value="model">三维模型</option>
+                  <option value="scan">扫描数据</option>
+                  <option value="pointcloud">点云数据</option>
+                  <option value="deliverable">成果数据</option>
+                  <option value="video">视频</option>
+                </select>
+              </div>
+              <button type="button" class="btn" id="res-filter-reset">重置条件</button>
+            </div>
+            <div class="admin-table-wrap res-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th style="width: 40px"><input type="checkbox" id="res-select-all" title="全选当前列表" /></th>
+                    <th>名称</th>
+                    <th>资源类型</th>
+                    <th>格式</th>
+                    <th>大小</th>
+                    <th>更新时间</th>
+                    <th>说明</th>
+                    <th style="min-width: 220px">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="res-file-tbody"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div class="admin-modal-backdrop" id="res-modal" hidden aria-hidden="true">
+    <div class="admin-modal admin-modal--lg" role="dialog" aria-modal="true" aria-labelledby="res-modal-title">
+      <div class="admin-modal-header">
+        <h2 class="admin-modal-title" id="res-modal-title"></h2>
+        <button type="button" class="admin-modal-close" data-res-close aria-label="关闭">&times;</button>
+      </div>
+      <div class="admin-modal-body" id="res-modal-body"></div>
+      <div class="admin-modal-footer" id="res-modal-footer"></div>
+    </div>
+  </div>
+
+  <div class="admin-modal-backdrop" id="res-preview-backdrop" hidden aria-hidden="true">
+    <div class="admin-modal admin-modal--xl" role="dialog" aria-modal="true" aria-labelledby="res-preview-title">
+      <div class="admin-modal-header">
+        <h2 class="admin-modal-title" id="res-preview-title">预览</h2>
+        <button type="button" class="admin-modal-close" id="res-preview-close" aria-label="关闭">&times;</button>
+      </div>
+      <div class="admin-modal-body">
+        <div id="res-preview-host" class="res-preview-host"></div>
+      </div>
+      <div class="admin-modal-footer">
+        <button type="button" class="btn btn-primary" id="res-preview-close-foot">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-toast" id="res-toast" role="status"></div>
+
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js" crossorigin="anonymous"></script>
+  <script src="assets/admin-layout.js"></script>
+  <script src="assets/resource-page.js"></script>
+  <script>
+    if (!document.documentElement.classList.contains("embed-mode")) {
+      AdminLayout.init({ active: "resource" });
+    } else {
+      AdminLayout.initTabs(document);
+    }
+  </script>
+</body>
+</html>

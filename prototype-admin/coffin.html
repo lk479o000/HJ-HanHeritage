@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>石棺管理 — 管理后台</title>
+  <link rel="stylesheet" href="assets/admin.css" />
+  <link rel="stylesheet" href="assets/embed.css" />
+  <script src="assets/embed.js"></script>
+</head>
+<body class="admin-body">
+  <div class="admin-root">
+    <aside class="admin-sidebar" id="admin-sidebar"></aside>
+    <div class="admin-wrap">
+      <header class="admin-topbar" id="admin-topbar"></header>
+      <main class="admin-main">
+        <h1 class="admin-page-title">石棺管理</h1>
+        <p class="admin-page-desc">
+          当前台账共 <strong id="coffin-stat-total">28</strong> 具石棺；字段与藏品总登记台账一致，均在编辑中<strong>手动录入</strong>。下方搜索框可在<strong>多字段</strong>中模糊匹配（含简介与已上传文件名）。点击<strong>查看</strong>浏览登记信息、简介及三维/成果图入口；<strong>新增石棺</strong>追加条目。正式环境对接接口与对象存储。
+        </p>
+
+        <div class="admin-card admin-card--coffin">
+          <div class="admin-toolbar admin-toolbar--cliff">
+            <div class="admin-toolbar-group admin-toolbar-group--filters">
+              <input
+                class="admin-input admin-input--search admin-input--coffin-q"
+                type="search"
+                id="coffin-filter-q"
+                placeholder="模糊查询：名称、编号、崖墓群、朝代、年代、质地、级别、来源、完残、简介…"
+                title="在登记表各字段与简介中模糊匹配；多个词用空格或逗号隔开，需同时满足"
+                autocomplete="off"
+              />
+              <button type="button" class="btn btn-primary" id="btn-coffin-search">查询</button>
+              <button type="button" class="btn" id="btn-coffin-reset">清空</button>
+            </div>
+            <div class="admin-toolbar-group admin-toolbar-group--actions">
+              <button type="button" class="btn btn-primary" id="btn-coffin-add">新增石棺</button>
+              <button type="button" class="btn" id="btn-coffin-export">导出</button>
+            </div>
+          </div>
+          <p class="admin-muted coffin-grid-hint" id="coffin-filter-hint"></p>
+          <div class="coffin-grid" id="coffin-grid" aria-label="石棺索引"></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- 石棺信息（崖墓信息式：先文字信息，再按需展开三维 / 成果图） -->
+  <div class="admin-modal-backdrop coffin-viewer-backdrop" id="coffin-viewer-modal" hidden aria-hidden="true">
+    <div class="admin-modal admin-modal--lg coffin-viewer-dialog" role="dialog" aria-modal="true" aria-labelledby="coffin-viewer-title">
+      <div class="admin-modal-header">
+        <h2 class="admin-modal-title" id="coffin-viewer-title">石棺信息</h2>
+        <button type="button" class="admin-modal-close" data-viewer-close aria-label="关闭">&times;</button>
+      </div>
+      <div class="admin-modal-body coffin-viewer-body">
+        <div class="cliff-info-modal coffin-viewer-info">
+          <header class="cliff-info-head">
+            <div class="cliff-info-code" id="coffin-viewer-code"></div>
+            <h3 class="cliff-info-title" id="coffin-viewer-name"></h3>
+          </header>
+          <div id="coffin-viewer-registry"></div>
+          <section class="cliff-info-section">
+            <h4 class="cliff-info-section-h">简介说明</h4>
+            <div class="cliff-info-prose cliff-info-prose--plain coffin-viewer-intro-prose" id="coffin-viewer-intro"></div>
+          </section>
+          <section class="cliff-info-section cliff-info-section--model" id="coffin-viewer-model-section" hidden>
+            <h4 class="cliff-info-section-h">石棺三维模型</h4>
+            <div class="admin-media-expand-shell">
+              <model-viewer
+                id="coffin-viewer-mv"
+                class="cliff-model-viewer cliff-model-viewer--info"
+                camera-controls
+                touch-action="pan-y"
+                interaction-prompt="none"
+                shadow-intensity="1"
+                environment-image="neutral"
+                alt="石棺三维模型"
+              ></model-viewer>
+              <button type="button" class="admin-media-expand-fab" aria-label="放大查看三维模型">放大</button>
+            </div>
+            <p class="cliff-info-media-hint">支持 GLB/GLTF：拖拽旋转、滚轮缩放、双指平移（触控）。未上传本地模型时将加载示范模型以便预览交互。</p>
+          </section>
+          <section class="cliff-info-section" id="coffin-viewer-imgs-section" hidden>
+            <h4 class="cliff-info-section-h">数字成果图（JPG）</h4>
+            <div class="coffin-img-type-tabs" id="coffin-viewer-tabs" role="tablist"></div>
+            <div class="coffin-viewer-img-frame coffin-viewer-img-frame--panel">
+              <p class="admin-muted coffin-viewer-img-hint" id="coffin-viewer-img-hint"></p>
+              <div class="coffin-viewer-img-mainbar">
+                <button type="button" class="coffin-img-nav" id="coffin-viewer-prev" aria-label="上一张" disabled>‹</button>
+                <div class="admin-media-expand-shell coffin-viewer-main-shell">
+                  <div class="coffin-viewer-main-img-wrap">
+                    <img id="coffin-viewer-detail-img" class="coffin-viewer-detail-img" alt="" hidden />
+                  </div>
+                  <button type="button" class="admin-media-expand-fab" aria-label="放大查看当前图片">放大</button>
+                </div>
+                <button type="button" class="coffin-img-nav" id="coffin-viewer-next" aria-label="下一张" disabled>›</button>
+              </div>
+              <p class="coffin-viewer-img-caption" id="coffin-viewer-img-caption"></p>
+              <div class="coffin-viewer-thumbs" id="coffin-viewer-thumbs" aria-label="缩略图切换"></div>
+              <p class="admin-muted coffin-viewer-img-empty" id="coffin-viewer-img-empty" hidden>暂无该类型图片</p>
+            </div>
+          </section>
+        </div>
+      </div>
+      <div class="admin-modal-footer">
+        <button type="button" class="btn" data-viewer-close>关闭</button>
+        <button type="button" class="btn" id="coffin-viewer-btn-model">查看三维模型</button>
+        <button type="button" class="btn btn-primary" id="coffin-viewer-btn-imgs">查看数字成果图</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-modal-backdrop" id="coffin-modal" hidden aria-hidden="true">
+    <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="coffin-modal-title">
+      <div class="admin-modal-header">
+        <h2 class="admin-modal-title" id="coffin-modal-title"></h2>
+        <button type="button" class="admin-modal-close" aria-label="关闭">&times;</button>
+      </div>
+      <div class="admin-modal-body" id="coffin-modal-body"></div>
+      <div class="admin-modal-footer" id="coffin-modal-footer"></div>
+    </div>
+  </div>
+
+  <div class="admin-modal-backdrop coffin-preview-backdrop" id="coffin-preview-modal" hidden aria-hidden="true">
+    <div class="admin-modal coffin-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="coffin-preview-title">
+      <div class="admin-modal-header">
+        <h2 class="admin-modal-title" id="coffin-preview-title"></h2>
+        <button type="button" class="admin-modal-close" data-preview-close aria-label="关闭">&times;</button>
+      </div>
+      <div class="admin-modal-body coffin-preview-body">
+        <div class="admin-media-expand-shell coffin-preview-expand-shell">
+          <img id="coffin-preview-img" alt="预览" class="coffin-preview-img" hidden />
+          <button type="button" class="admin-media-expand-fab" aria-label="放大查看预览图">放大</button>
+        </div>
+        <p class="admin-muted" id="coffin-preview-placeholder"></p>
+      </div>
+      <div class="admin-modal-footer">
+        <button type="button" class="btn btn-primary" data-preview-close>关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-toast" id="coffin-toast" role="status"></div>
+
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js" crossorigin="anonymous"></script>
+  <script src="assets/admin-layout.js"></script>
+  <script src="assets/admin-media-expand.js"></script>
+  <script src="assets/coffin-page.js"></script>
+  <script>
+    if (!document.documentElement.classList.contains("embed-mode")) {
+      AdminLayout.init({ active: "coffin" });
+    } else {
+      AdminLayout.initTabs(document);
+    }
+  </script>
+</body>
+</html>

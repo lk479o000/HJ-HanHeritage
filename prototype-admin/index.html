@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>可视化管理系统 — 合江汉代画像石棺项目（二期）</title>
+  <link rel="stylesheet" href="assets/admin.css" />
+  <link rel="stylesheet" href="assets/shell.css" />
+</head>
+<body class="admin-body">
+  <div class="admin-root shell-root">
+    <aside class="admin-sidebar" id="shell-sidebar" aria-label="主导航"></aside>
+    <div class="shell-main">
+      <header class="admin-topbar" id="shell-topbar"></header>
+      <iframe
+        id="admin-iframe"
+        name="admin-iframe"
+        title="业务内容区"
+        src="dashboard.html?embed=1"
+      ></iframe>
+    </div>
+  </div>
+  <script src="assets/sys-config-store.js"></script>
+  <script src="assets/admin-layout.js"></script>
+  <script>
+    AdminLayout.initShell({
+      iframeId: "admin-iframe",
+      sidebarId: "shell-sidebar",
+      topbarId: "shell-topbar",
+      defaultHref: "dashboard.html",
+      defaultId: "dashboard",
+    });
+  </script>
+</body>
+</html>

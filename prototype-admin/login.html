@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>登录 — 可视化管理系统</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="assets/admin.css" />
+  <link rel="stylesheet" href="assets/sys-config.css" />
+</head>
+<body class="login-body">
+  <div class="login-page">
+    <aside class="login-hero" aria-hidden="true">
+      <div class="login-hero__texture" aria-hidden="true"></div>
+      <div class="login-hero__vignette" aria-hidden="true"></div>
+      <div class="login-hero__content">
+        <div class="login-hero__seal" aria-hidden="true">
+          <svg viewBox="0 0 120 120" width="72" height="72" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="12" y="12" width="96" height="96" rx="4" stroke="currentColor" stroke-width="2.2" opacity="0.85" />
+            <rect x="28" y="28" width="64" height="64" rx="2" stroke="currentColor" stroke-width="1.4" opacity="0.55" />
+            <path d="M60 38v44M38 60h44" stroke="currentColor" stroke-width="1.2" opacity="0.35" />
+          </svg>
+        </div>
+        <p class="login-hero__eyebrow">文物数字化馆藏 · 合江汉代画像石棺</p>
+        <h2 class="login-hero__headline">数字化保护与展示利用</h2>
+        <p class="login-hero__rule"><span>馆藏管理</span></p>
+      </div>
+    </aside>
+
+    <main class="login-main">
+      <div class="login-card">
+        <header class="login-card__head">
+          <p class="login-card__kicker">内部管理</p>
+          <h1 class="login-card__title">可视化管理系统</h1>
+          <div class="login-card__rule" aria-hidden="true"></div>
+        </header>
+
+        <form class="login-form" action="index.html" method="get">
+          <div class="login-field">
+            <label class="login-field__label" for="u">账号</label>
+            <div class="login-input-wrap">
+              <span class="login-input-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </span>
+              <input class="login-input" id="u" name="u" type="text" placeholder="请输入用户名" autocomplete="username" />
+            </div>
+          </div>
+          <div class="login-field">
+            <label class="login-field__label" for="p">密码</label>
+            <div class="login-input-wrap">
+              <span class="login-input-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </span>
+              <input class="login-input" id="p" name="p" type="password" placeholder="请输入密码" autocomplete="current-password" />
+            </div>
+          </div>
+          <button type="submit" class="btn login-submit">进入管理后台</button>
+        </form>
+
+        <p class="login-foot">
+          原型无真实鉴权，提交即进入 <code>index.html</code>（侧栏 + iframe 单页壳）
+        </p>
+
+        <section class="sys-login-notices" aria-label="系统公告">
+          <h2>系统公告</h2>
+          <div id="login-notice-list"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script src="assets/sys-config-store.js"></script>
+  <script>
+    (function () {
+      function pad(n) {
+        return n < 10 ? "0" + n : String(n);
+      }
+      function esc(s) {
+        return String(s == null ? "" : s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/"/g, "&quot;");
+      }
+      function safeHtml(html) {
+        // very small allowlist
+        html = String(html || "");
+        html = html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "");
+        html = html.replace(/ on\w+="[^"]*"/gi, "");
+        html = html.replace(/ on\w+='[^']*'/gi, "");
+        // strip tags except: p br strong em ul ol li img a
+        html = html.replace(/<(\/?)(?!p\b|br\b|strong\b|em\b|ul\b|ol\b|li\b|img\b|a\b)[^>]*>/gi, "");
+        // keep img/src only
+        html = html.replace(/<img\b([^>]*)>/gi, function (_, attrs) {
+          var m = String(attrs).match(/\bsrc\s*=\s*("([^"]+)"|'([^']+)')/i);
+          var src = m ? (m[2] || m[3] || "") : "";
+          var safeSrc = /^data:image\//i.test(src) || /^https?:\/\//i.test(src) ? src : "";
+          return safeSrc ? '<img src="' + esc(safeSrc) + '" alt="" />' : "";
+        });
+        // sanitize a/href
+        html = html.replace(/<a\b([^>]*)>/gi, function (_, attrs) {
+          var m = String(attrs).match(/\bhref\s*=\s*("([^"]+)"|'([^']+)')/i);
+          var href = m ? (m[2] || m[3] || "") : "";
+          var safeHref = /^https?:\/\//i.test(href) ? href : "#";
+          return '<a href="' + esc(safeHref) + '" target="_blank" rel="noreferrer noopener">';
+        });
+        return html;
+      }
+      function scopeText(scope) {
+        scope = scope && typeof scope === "object" ? scope : { type: "all", ids: [] };
+        if (scope.type === "dept") return "部门可见";
+        if (scope.type === "role") return "角色可见";
+        return "全体可见";
+      }
+      function fmt(ms) {
+        var d = new Date(ms);
+        return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+      }
+      function render() {
+        var el = document.getElementById("login-notice-list");
+        if (!el || !window.SysConfigStore) return;
+        var items = SysConfigStore.getPublishedNotices();
+        if (!items.length) {
+          el.innerHTML = '<p class="sys-login-notices-empty">暂无已发布公告</p>';
+          return;
+        }
+        el.innerHTML =
+          '<ul class="sys-login-notice-list">' +
+          items
+            .map(function (n) {
+              var body = n.contentHtml ? safeHtml(n.contentHtml) : esc(n.content || "");
+              return (
+                "<li>" +
+                '<div class="sys-nt-title">' +
+                esc(n.title) +
+                "</div>" +
+                '<div class="sys-nt-meta">发布于 ' +
+                esc(fmt(n.publishedAt)) +
+                " · " +
+                esc(scopeText(n.scope)) +
+                "</div>" +
+                '<div class="sys-nt-body">' +
+                body +
+                "</div>" +
+                "</li>"
+              );
+            })
+            .join("") +
+          "</ul>";
+      }
+      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", render);
+      else render();
+    })();
+  </script>
+</body>
+</html>

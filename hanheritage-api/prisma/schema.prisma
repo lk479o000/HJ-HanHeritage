@@ -1,0 +1,413 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model SysUser {
+  id        BigInt   @id @default(autoincrement()) @map("id")
+  account   String   @unique @db.VarChar(50) @map("account")
+  password  String   @db.VarChar(200) @map("password")
+  name      String   @db.VarChar(50) @map("name")
+  phone     String?  @db.VarChar(20) @map("phone")
+  email     String?  @db.VarChar(100) @map("email")
+  avatar    String?  @db.VarChar(500) @map("avatar")
+  deptId    BigInt?  @map("dept_id")
+  status    Int      @default(1) @db.TinyInt @map("status")
+  delFlag   Int      @default(0) @db.TinyInt @map("del_flag")
+  createdBy  String?  @db.VarChar(50) @map("create_by")
+  updatedBy  String?  @db.VarChar(50) @map("update_by")
+  createdAt DateTime @default(now()) @map("create_time")
+  updatedAt DateTime @updatedAt @map("update_time")
+
+  dept  SysDept?       @relation(fields: [deptId], references: [id])
+  roles SysUserRole[]
+  posts SysUserPost[]
+
+  @@map("sys_user")
+}
+
+model SysRole {
+  id        BigInt   @id @default(autoincrement()) @map("id")
+  name      String   @db.VarChar(50) @map("name")
+  code      String   @unique @db.VarChar(50) @map("code")
+  type      Int      @default(1) @db.TinyInt @map("type")
+  dataScope String?  @db.VarChar(20) @map("data_scope")
+  parentId  BigInt?  @default(0) @map("parent_id")
+  sort      Int      @default(0) @map("sort")
+  status    Int      @default(1) @db.TinyInt @map("status")
+  delFlag   Int      @default(0) @db.TinyInt @map("del_flag")
+  createdBy  String?  @db.VarChar(50) @map("create_by")
+  updatedBy  String?  @db.VarChar(50) @map("update_by")
+  createdAt DateTime @default(now()) @map("create_time")
+  updatedAt DateTime @updatedAt @map("update_time")
+
+  users       SysUserRole[]
+  menus       SysRoleMenu[]
+  permissions SysRolePermission[]
+  children    SysRole[]     @relation("RoleTree")
+  parent   SysRole?      @relation("RoleTree", fields: [parentId], references: [id])
+
+  @@map("sys_role")
+}
+
+model SysDept {
+  id        BigInt   @id @default(autoincrement()) @map("id")
+  name      String   @db.VarChar(50) @map("name")
+  parentId  BigInt?  @default(0) @map("parent_id")
+  sort      Int      @default(0) @map("sort")
+  leader    String?  @db.VarChar(50) @map("leader")
+  status    Int      @default(1) @db.TinyInt @map("status")
+  delFlag   Int      @default(0) @db.TinyInt @map("del_flag")
+  createdBy  String?  @db.VarChar(50) @map("create_by")
+  updatedBy  String?  @db.VarChar(50) @map("update_by")
+  createdAt DateTime @default(now()) @map("create_time")
+  updatedAt DateTime @updatedAt @map("update_time")
+
+  users    SysUser[]
+  children SysDept[] @relation("DeptTree")
+  parent   SysDept?  @relation("DeptTree", fields: [parentId], references: [id])
+
+  @@map("sys_dept")
+}
+
+model SysMenu {
+  id        BigInt   @id @default(autoincrement()) @map("id")
+  name      String   @db.VarChar(50) @map("name")
+  icon      String?  @db.VarChar(100) @map("icon")
+  parentId  BigInt?  @default(0) @map("parent_id")
+  path      String?  @db.VarChar(200) @map("path")
+  component String?  @db.VarChar(200) @map("component")
+  sort      Int      @default(0) @map("sort")
+  type      String   @db.VarChar(10) @map("type")
+  perms     String?  @db.VarChar(100) @map("perms")
+  status    Int      @default(1) @db.TinyInt @map("status")
+  delFlag   Int      @default(0) @db.TinyInt @map("del_flag")
+  createdBy  String?  @db.VarChar(50) @map("create_by")
+  updatedBy  String?  @db.VarChar(50) @map("update_by")
+  createdAt DateTime @default(now()) @map("create_time")
+  updatedAt DateTime @updatedAt @map("update_time")
+
+  roles    SysRoleMenu[]
+  children SysMenu[]  @relation("MenuTree")
+  parent   SysMenu?   @relation("MenuTree", fields: [parentId], references: [id])
+
+  @@map("sys_menu")
+}
+
+model SysUserRole {
+  userId BigInt @map("user_id")
+  roleId BigInt @map("role_id")
+
+  user SysUser @relation(fields: [userId], references: [id])
+  role SysRole @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])
+  @@map("sys_user_role")
+}
+
+model SysUserPost {
+  userId BigInt @map("user_id")
+  postId BigInt @map("post_id")
+
+  user SysUser @relation(fields: [userId], references: [id], map: "sys_user_post_user_fkey")
+  post SysPost @relation(fields: [postId], references: [id], map: "sys_user_post_post_fkey")
+
+  @@id([userId, postId])
+  @@map("sys_user_post")
+}
+
+model SysRoleMenu {
+  roleId BigInt @map("role_id")
+  menuId BigInt @map("menu_id")
+
+  role SysRole @relation(fields: [roleId], references: [id])
+  menu SysMenu @relation(fields: [menuId], references: [id])
+
+  @@id([roleId, menuId])
+  @@map("sys_role_menu")
+}
+
+model SysRolePermission {
+  roleId       BigInt  @map("role_id")
+  permissionId String  @db.VarChar(50) @map("permission_id")
+
+  role SysRole @relation(fields: [roleId], references: [id])
+
+  @@id([roleId, permissionId])
+  @@map("sys_role_permission")
+}
+
+model SysPost {
+  id        BigInt   @id @default(autoincrement()) @map("id")
+  name      String   @db.VarChar(50) @map("name")
+  code      String   @unique @db.VarChar(50) @map("code")
+  parentId  BigInt?  @default(0) @map("parent_id")
+  sort      Int      @default(0) @map("sort")
+  remark    String?  @db.VarChar(200) @map("remark")
+  status    Int      @default(1) @db.TinyInt @map("status")
+  delFlag   Int      @default(0) @db.TinyInt @map("del_flag")
+  createdBy  String?  @db.VarChar(50) @map("create_by")
+  updatedBy  String?  @db.VarChar(50) @map("update_by")
+  createdAt DateTime @default(now()) @map("create_time")
+  updatedAt DateTime @updatedAt @map("update_time")
+
+  users       SysUserPost[]
+  permissions SysPostPermission[]
+  children    SysPost[]     @relation("PostTree")
+  parent      SysPost?      @relation("PostTree", fields: [parentId], references: [id])
+
+  @@map("sys_post")
+}
+
+model SysPostPermission {
+  postId       BigInt  @map("post_id")
+  permissionId String  @db.VarChar(50) @map("permission_id")
+
+  post SysPost @relation(fields: [postId], references: [id])
+
+  @@id([postId, permissionId])
+  @@map("sys_post_permission")
+}
+
+model SysDict {
+  id        BigInt   @id @default(autoincrement()) @map("id")
+  dictType  String   @db.VarChar(50) @map("dict_type")
+  dictCode  String   @db.VarChar(50) @map("dict_code")
+  dictLabel String   @db.VarChar(100) @map("dict_label")
+  dictValue String?  @db.VarChar(100) @map("dict_value")
+  sort      Int      @default(0) @map("sort")
+  status    Int      @default(1) @db.TinyInt @map("status")
+  remark    String?  @db.VarChar(200) @map("remark")
+  createdAt DateTime @default(now()) @map("create_time")
+  updatedAt DateTime @updatedAt @map("update_time")
+
+  @@unique([dictType, dictCode])
+  @@map("sys_dict")
+}
+
+model SysNotice {
+  id           BigInt    @id @default(autoincrement()) @map("id")
+  title        String    @db.VarChar(200) @map("title")
+  content      String?   @db.Text @map("content")
+  contentHtml  String?   @db.Text @map("content_html")
+  type         String    @db.VarChar(20) @map("type")
+  scope        String    @db.VarChar(20) @map("scope")
+  status       String    @db.VarChar(20) @map("status")
+  publishedAt  DateTime? @map("published_at")
+  createdBy    String?   @db.VarChar(50) @map("create_by")
+  updatedBy    String?   @db.VarChar(50) @map("update_by")
+  createdAt    DateTime  @default(now()) @map("create_time")
+  updatedAt    DateTime  @updatedAt @map("update_time")
+
+  @@map("sys_notice")
+}
+
+model BizCliff {
+  id          BigInt   @id @default(autoincrement()) @map("id")
+  code        String   @unique @db.VarChar(20) @map("code")
+  name        String   @db.VarChar(100) @map("name")
+  lng         Decimal? @db.Decimal(10, 5) @map("lng")
+  lat         Decimal? @db.Decimal(10, 5) @map("lat")
+  area        Float?   @map("area")
+  level       String?  @db.VarChar(20) @map("level")
+  category    String?  @db.VarChar(20) @map("category")
+  dynasty     String?  @db.VarChar(20) @map("dynasty")
+  description String?  @db.Text @map("description")
+  status      Int      @default(1) @db.TinyInt @map("status")
+  delFlag     Int      @default(0) @db.TinyInt @map("del_flag")
+  createdBy    String?  @db.VarChar(50) @map("create_by")
+  updatedBy    String?  @db.VarChar(50) @map("update_by")
+  createdAt   DateTime @default(now()) @map("create_time")
+  updatedAt   DateTime @updatedAt @map("update_time")
+
+  entrances BizEntrance[]
+  coffins   BizCoffin[]
+
+  @@map("biz_cliff")
+}
+
+model BizEntrance {
+  id        BigInt   @id @default(autoincrement()) @map("id")
+  cliffId   BigInt   @map("cliff_id")
+  x         Float?   @map("x")
+  y         Float?   @map("y")
+  z         Float?   @map("z")
+  direction String?  @db.VarChar(20) @map("direction")
+  intro     String?  @db.VarChar(500) @map("intro")
+  createdAt DateTime @default(now()) @map("create_time")
+
+  cliff BizCliff @relation(fields: [cliffId], references: [id])
+
+  @@map("biz_entrance")
+}
+
+model BizCoffin {
+  id           BigInt   @id @default(autoincrement()) @map("id")
+  code         String   @unique @db.VarChar(20) @map("code")
+  name         String   @db.VarChar(100) @map("name")
+  cliffId      BigInt?  @map("cliff_id")
+  dynasty      String?  @db.VarChar(20) @map("dynasty")
+  grade        String?  @db.VarChar(20) @map("grade")
+  source       String?  @db.VarChar(20) @map("source")
+  completeness String?  @db.VarChar(20) @map("completeness")
+  dimensions   String?  @db.VarChar(100) @map("dimensions")
+  texture      String?  @db.VarChar(50) @map("texture")
+  description  String?  @db.Text @map("description")
+  thumbnail    String?  @db.VarChar(500) @map("thumbnail")
+  status       Int      @default(1) @db.TinyInt @map("status")
+  delFlag      Int      @default(0) @db.TinyInt @map("del_flag")
+  createdBy     String?  @db.VarChar(50) @map("create_by")
+  updatedBy     String?  @db.VarChar(50) @map("update_by")
+  createdAt    DateTime @default(now()) @map("create_time")
+  updatedAt    DateTime @updatedAt @map("update_time")
+
+  cliff  BizCliff?         @relation(fields: [cliffId], references: [id])
+  images BizCoffinImage[]
+  models BizCoffinModel[]
+
+  @@map("biz_coffin")
+}
+
+model BizCoffinImage {
+  id        BigInt   @id @default(autoincrement()) @map("id")
+  coffinId  BigInt   @map("coffin_id")
+  imageUrl  String   @db.VarChar(500) @map("image_url")
+  imageType String   @db.VarChar(20) @map("image_type")
+  sort      Int      @default(0) @map("sort")
+  createdAt DateTime @default(now()) @map("create_time")
+
+  coffin BizCoffin @relation(fields: [coffinId], references: [id])
+
+  @@map("biz_coffin_image")
+}
+
+model BizCoffinModel {
+  id        BigInt   @id @default(autoincrement()) @map("id")
+  coffinId  BigInt   @map("coffin_id")
+  modelUrl  String   @db.VarChar(500) @map("model_url")
+  format    String   @db.VarChar(20) @map("format")
+  fileSize  Int      @default(0) @map("file_size")
+  createdAt DateTime @default(now()) @map("create_time")
+
+  coffin BizCoffin @relation(fields: [coffinId], references: [id])
+
+  @@map("biz_coffin_model")
+}
+
+model BizPanorama {
+  id          BigInt   @id @default(autoincrement()) @map("id")
+  name        String   @db.VarChar(100) @map("name")
+  category    String?  @db.VarChar(20) @map("category")
+  location    String?  @db.VarChar(200) @map("location")
+  description String?  @db.Text @map("description")
+  imageUrl    String?  @db.VarChar(500) @map("image_url")
+  status      Int      @default(1) @db.TinyInt @map("status")
+  delFlag     Int      @default(0) @db.TinyInt @map("del_flag")
+  createdBy    String?  @db.VarChar(50) @map("create_by")
+  updatedBy    String?  @db.VarChar(50) @map("update_by")
+  createdAt   DateTime @default(now()) @map("create_time")
+  updatedAt   DateTime @updatedAt @map("update_time")
+
+  viewpoints BizPanoramaViewpoint[]
+  hotspots   BizPanoramaHotspot[]
+
+  @@map("biz_panorama")
+}
+
+model BizPanoramaViewpoint {
+  id         BigInt   @id @default(autoincrement()) @map("id")
+  panoramaId BigInt   @map("panorama_id")
+  name       String   @db.VarChar(100) @map("name")
+  lng        Decimal? @db.Decimal(10, 5) @map("lng")
+  lat        Decimal? @db.Decimal(10, 5) @map("lat")
+  height     Float?   @map("height")
+  createdAt  DateTime @default(now()) @map("create_time")
+
+  panorama BizPanorama @relation(fields: [panoramaId], references: [id])
+
+  @@map("biz_panorama_viewpoint")
+}
+
+model BizPanoramaHotspot {
+  id         BigInt   @id @default(autoincrement()) @map("id")
+  panoramaId BigInt   @map("panorama_id")
+  type       String   @db.VarChar(20) @map("type")
+  config     String?  @db.Text @map("config")
+  posX       Float?   @map("pos_x")
+  posY       Float?   @map("pos_y")
+  createdAt  DateTime @default(now()) @map("create_time")
+
+  panorama BizPanorama @relation(fields: [panoramaId], references: [id])
+
+  @@map("biz_panorama_hotspot")
+}
+
+model BizResource {
+  id        BigInt   @id @default(autoincrement()) @map("id")
+  name      String   @db.VarChar(200) @map("name")
+  type      String   @db.VarChar(20) @map("type")
+  parentId  BigInt?  @default(0) @map("parent_id")
+  fileUrl   String?  @db.VarChar(500) @map("file_url")
+  fileSize  Int      @default(0) @map("file_size")
+  mimeType  String?  @db.VarChar(100) @map("mime_type")
+  delFlag   Int      @default(0) @db.TinyInt @map("del_flag")
+  createdBy  String?  @db.VarChar(50) @map("create_by")
+  updatedBy  String?  @db.VarChar(50) @map("update_by")
+  createdAt DateTime @default(now()) @map("create_time")
+  updatedAt DateTime @updatedAt @map("update_time")
+
+  children BizResource[] @relation("ResourceTree")
+  parent   BizResource?  @relation("ResourceTree", fields: [parentId], references: [id])
+
+  @@map("biz_resource")
+}
+
+model LogLogin {
+  id         BigInt   @id @default(autoincrement()) @map("id")
+  username   String   @db.VarChar(50) @map("username")
+  loginTime  DateTime @default(now()) @map("login_time")
+  ip         String?  @db.VarChar(50) @map("ip")
+  os         String?  @db.VarChar(100) @map("os")
+  browser    String?  @db.VarChar(100) @map("browser")
+  success    Int      @default(1) @db.TinyInt @map("success")
+  failReason String?  @db.VarChar(200) @map("fail_reason")
+
+  @@map("log_login")
+}
+
+model LogOperation {
+  id          BigInt   @id @default(autoincrement()) @map("id")
+  operator    String?  @db.VarChar(50) @map("operator")
+  operateTime DateTime @default(now()) @map("operate_time")
+  type        String?  @db.VarChar(20) @map("type")
+  targetId    String?  @db.VarChar(50) @map("target_id")
+  description String?  @db.VarChar(500) @map("description")
+  method      String?  @db.VarChar(10) @map("method")
+  url         String?  @db.VarChar(500) @map("url")
+  params      String?  @db.Text @map("params")
+  status      Int      @default(1) @db.TinyInt @map("status")
+  ip          String?  @db.VarChar(50) @map("ip")
+  duration    Int      @default(0) @map("duration")
+
+  @@map("log_operation")
+}
+
+model GeoTown {
+  id        BigInt   @id @default(autoincrement()) @map("id")
+  code      String   @unique @db.VarChar(20) @map("code")
+  name      String   @db.VarChar(50) @map("name")
+  fullName  String   @db.VarChar(100) @map("full_name")
+  lng       Decimal? @db.Decimal(10, 5) @map("lng")
+  lat       Decimal? @db.Decimal(10, 5) @map("lat")
+  sort      Int      @default(0) @map("sort")
+  status    Int      @default(1) @db.TinyInt @map("status")
+  remark    String?  @db.VarChar(200) @map("remark")
+  createdAt DateTime @default(now()) @map("create_time")
+  updatedAt DateTime @updatedAt @map("update_time")
+
+  @@map("geo_town")
+}

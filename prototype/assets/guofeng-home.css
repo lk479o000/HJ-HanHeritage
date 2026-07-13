@@ -1,0 +1,260 @@
+/* 国风首页 — 参考展陈高保真：天青、玉绿、云纹、竖向导航卡 */
+body.home-guofeng {
+  background: linear-gradient(
+    180deg,
+    #b8d9e8 0%,
+    #d4eaf2 18%,
+    #e8f4f7 38%,
+    #f2f0e8 68%,
+    #faf6ef 100%
+  );
+  color: #2c3330;
+}
+
+body.home-guofeng .page-shell {
+  position: relative;
+  z-index: 2;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* 全屏装饰层 */
+.gf-stage {
+  position: relative;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.gf-decor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.gf-decor svg {
+  display: block;
+}
+
+.gf-cloud-base {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: min(42dvh, 320px);
+}
+
+.gf-mountain {
+  position: absolute;
+  bottom: 0;
+  width: min(45vw, 420px);
+  opacity: 0.35;
+}
+
+.gf-mountain--left {
+  left: -2%;
+}
+
+.gf-mountain--right {
+  right: -2%;
+  transform: scaleX(-1);
+}
+
+.gf-beast {
+  position: absolute;
+  bottom: min(18dvh, 140px);
+  width: min(22vw, 180px);
+  opacity: 0.22;
+}
+
+.gf-beast--left {
+  left: 2%;
+}
+
+.gf-beast--right {
+  right: 2%;
+}
+
+.gf-scholar {
+  position: absolute;
+  bottom: min(8dvh, 72px);
+  right: min(6vw, 64px);
+  width: min(18vw, 140px);
+  opacity: 0.2;
+}
+
+/* 顶部标题区 */
+body.home-guofeng .hero {
+  padding-top: clamp(20px, 4dvh, 40px);
+}
+
+body.home-guofeng .hero::after {
+  display: none;
+}
+
+body.home-guofeng .hero .project-line {
+  font-size: clamp(0.82rem, 1.8vw, 0.95rem);
+  color: #5a6d6a;
+  letter-spacing: 0.12em;
+  margin: 0 0 12px;
+}
+
+body.home-guofeng .hero .title {
+  font-family: "STKaiti", "KaiTi", "SimSun", "FangSong", "Noto Serif SC", serif;
+  font-size: clamp(2rem, 5.5vw, 3.25rem);
+  font-weight: 700;
+  color: #1a1f1e;
+  letter-spacing: 0.2em;
+  text-indent: 0.2em;
+  margin: 0 0 10px;
+  line-height: 1.35;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+body.home-guofeng .hero .tagline {
+  font-size: clamp(0.88rem, 1.9vw, 1rem);
+  color: #5a726e;
+  margin: 0;
+  letter-spacing: 0.08em;
+}
+
+/* 导航卡片区 */
+.gf-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: clamp(16px, 3vw, 36px);
+  padding: clamp(16px, 3dvh, 32px) 12px 24px;
+  flex: 1;
+  align-content: center;
+}
+
+.gf-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(240px, 30vw);
+  min-width: 200px;
+  min-height: 300px;
+  padding: 28px 18px 22px;
+  border-radius: 18px;
+  border: 2px solid #6aada0;
+  background: linear-gradient(165deg, #fffef9 0%, #f7f2e8 45%, #efe8dc 100%);
+  box-shadow:
+    0 4px 20px rgba(80, 120, 110, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+  color: inherit;
+  touch-action: manipulation;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.gf-card:active {
+  transform: scale(0.98);
+}
+
+.gf-card:hover {
+  border-color: #4a8f82;
+  box-shadow: 0 8px 32px rgba(80, 120, 110, 0.18);
+  transform: translateY(-3px);
+}
+
+/* 海棠式 / 如意云纹外框 */
+.gf-icon-wrap {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin-bottom: 18px;
+}
+
+.gf-quatrefoil {
+  position: absolute;
+  inset: 0;
+}
+
+.gf-quatrefoil path {
+  fill: rgba(106, 173, 160, 0.16);
+  stroke: #5a9b8a;
+  stroke-width: 1.8;
+}
+
+.gf-icon-inner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 52px;
+  height: 52px;
+  color: #3d7a70;
+}
+
+.gf-card h2 {
+  font-family: "STKaiti", "KaiTi", "SimSun", "Noto Serif SC", serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #2a3f3a;
+  margin: 0 0 10px;
+  text-align: center;
+  letter-spacing: 0.12em;
+}
+
+.gf-card .gf-card-sub {
+  flex: 1;
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: #5a6d6a;
+  text-align: center;
+}
+
+.gf-card .gf-enter {
+  margin-top: 14px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #3d7a70;
+  letter-spacing: 0.2em;
+}
+
+/* 次要入口 */
+.gf-extra {
+  text-align: center;
+  padding: 8px 16px 20px;
+}
+
+body.home-guofeng .gf-extra .btn-touch.ghost {
+  border-color: rgba(90, 155, 138, 0.45);
+  color: #3d6b62;
+  background: rgba(255, 254, 249, 0.65);
+}
+
+body.home-guofeng footer.proto-foot {
+  color: #6a7d7a;
+  padding-top: 8px;
+}
+
+@media (max-width: 700px), (orientation: portrait) {
+  .gf-nav {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .gf-card {
+    width: min(320px, 88vw);
+    min-height: 0;
+  }
+
+  .gf-mountain {
+    width: min(70vw, 280px);
+    opacity: 0.25;
+  }
+
+  .gf-beast {
+    display: none;
+  }
+
+  .gf-scholar {
+    width: min(28vw, 120px);
+    opacity: 0.15;
+  }
+}

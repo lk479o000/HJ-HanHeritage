@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>缓存监控 — 管理后台</title>
+  <link rel="stylesheet" href="assets/admin.css" />
+  <link rel="stylesheet" href="assets/monitor-pages.css" />
+  <link rel="stylesheet" href="assets/embed.css" />
+  <script src="assets/embed.js"></script>
+</head>
+<body class="admin-body">
+  <div class="admin-root">
+    <aside class="admin-sidebar" id="admin-sidebar"></aside>
+    <div class="admin-wrap">
+      <header class="admin-topbar" id="admin-topbar"></header>
+      <main class="admin-main">
+        <h1 class="admin-page-title">缓存监控</h1>
+        <nav class="mon-breadcrumb" aria-label="面包屑">首页 <span>/</span> 运维监控 <span>/</span> 缓存监控</nav>
+        <p class="mon-page-desc">Redis 基本信息、命令分布与内存消耗仪表盘（演示数据）；正式环境对接 INFO / 监控中间件。</p>
+
+        <div class="redis-toolbar">
+          <button type="button" class="btn btn-primary" id="mon-redis-refresh">刷新</button>
+          <label><input type="checkbox" id="mon-redis-auto" /> 每 4 秒自动刷新</label>
+        </div>
+
+        <section class="mon-dash-card" aria-labelledby="redis-basic-title">
+          <h2 class="mon-dash-card-title" id="redis-basic-title">基本信息</h2>
+          <div class="mon-dash-card-body redis-basic-grid">
+            <div class="redis-basic-cell">
+              <span class="redis-basic-label">Redis 版本</span>
+              <span class="redis-basic-val" id="redis-ver">—</span>
+            </div>
+            <div class="redis-basic-cell">
+              <span class="redis-basic-label">运行模式</span>
+              <span class="redis-basic-val" id="redis-mode">—</span>
+            </div>
+            <div class="redis-basic-cell">
+              <span class="redis-basic-label">端口</span>
+              <span class="redis-basic-val" id="redis-port">—</span>
+            </div>
+            <div class="redis-basic-cell">
+              <span class="redis-basic-label">客户端数</span>
+              <span class="redis-basic-val" id="redis-clients">—</span>
+            </div>
+            <div class="redis-basic-cell">
+              <span class="redis-basic-label">运行时间（天）</span>
+              <span class="redis-basic-val" id="redis-uptime">—</span>
+            </div>
+            <div class="redis-basic-cell">
+              <span class="redis-basic-label">使用内存</span>
+              <span class="redis-basic-val" id="redis-mem-used">—</span>
+            </div>
+            <div class="redis-basic-cell">
+              <span class="redis-basic-label">使用 CPU</span>
+              <span class="redis-basic-val" id="redis-cpu">—</span>
+            </div>
+            <div class="redis-basic-cell">
+              <span class="redis-basic-label">内存配置</span>
+              <span class="redis-basic-val" id="redis-mem-cfg">—</span>
+            </div>
+            <div class="redis-basic-cell">
+              <span class="redis-basic-label">AOF 是否开启</span>
+              <span class="redis-basic-val" id="redis-aof">—</span>
+            </div>
+            <div class="redis-basic-cell">
+              <span class="redis-basic-label">RDB 是否成功</span>
+              <span class="redis-basic-val" id="redis-rdb">—</span>
+            </div>
+            <div class="redis-basic-cell">
+              <span class="redis-basic-label">Key 数量</span>
+              <span class="redis-basic-val" id="redis-keys">—</span>
+            </div>
+            <div class="redis-basic-cell">
+              <span class="redis-basic-label">网络入口 / 出口</span>
+              <span class="redis-basic-val" id="redis-net">—</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="redis-charts-row">
+          <section class="mon-dash-card" aria-labelledby="redis-cmd-title">
+            <h2 class="mon-dash-card-title" id="redis-cmd-title">命令统计</h2>
+            <div class="mon-dash-card-body redis-cmd-panel">
+              <div class="redis-donut-stack" aria-hidden="true">
+                <div class="redis-donut" id="redis-cmd-donut"></div>
+                <div class="redis-donut-hole"></div>
+              </div>
+              <ul class="redis-cmd-legend" id="redis-cmd-legend"></ul>
+            </div>
+          </section>
+
+          <section class="mon-dash-card" aria-labelledby="redis-mem-title">
+            <h2 class="mon-dash-card-title" id="redis-mem-title">内存信息</h2>
+            <div class="mon-dash-card-body redis-mem-panel">
+              <div class="redis-gauge-chart">
+                <svg class="redis-gauge-svg" viewBox="0 0 200 118" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="redisGaugeStroke" x1="0%" y1="0%" x2="100%" y2="0%" gradientUnits="objectBoundingBox">
+                      <stop offset="0%" stop-color="#52c41a" />
+                      <stop offset="33.33%" stop-color="#52c41a" />
+                      <stop offset="33.33%" stop-color="#1890ff" />
+                      <stop offset="66.66%" stop-color="#1890ff" />
+                      <stop offset="66.66%" stop-color="#ff4d4f" />
+                      <stop offset="100%" stop-color="#ff4d4f" />
+                    </linearGradient>
+                  </defs>
+                  <!-- 底轨 -->
+                  <path
+                    class="redis-gauge-track"
+                    d="M 22 96 A 78 78 0 0 1 178 96"
+                    fill="none"
+                    stroke="#e8eaed"
+                    stroke-width="12"
+                    stroke-linecap="round"
+                  />
+                  <!-- 三色弧：0–333 / 333–666 / 666–1000 与刻度一致 -->
+                  <path
+                    class="redis-gauge-arc"
+                    d="M 22 96 A 78 78 0 0 1 178 96"
+                    fill="none"
+                    stroke="url(#redisGaugeStroke)"
+                    stroke-width="12"
+                    stroke-linecap="round"
+                  />
+                  <g transform="translate(100,96)">
+                    <g id="redis-gauge-needle" transform="rotate(90)">
+                      <line
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="-62"
+                        class="redis-gauge-needle-line"
+                      />
+                    </g>
+                    <circle class="redis-gauge-hub" cx="0" cy="0" r="4" />
+                  </g>
+                </svg>
+                <div class="redis-gauge-center">
+                  <div class="redis-gauge-title">内存消耗</div>
+                  <div class="redis-gauge-num" id="redis-gauge-mem">—</div>
+                </div>
+              </div>
+              <div class="redis-gauge-ticks">
+                <span>0</span>
+                <span>250</span>
+                <span>500</span>
+                <span>750</span>
+                <span>1000</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <p class="mon-footer-meta" id="mon-redis-meta"></p>
+      </main>
+    </div>
+  </div>
+  <div class="admin-toast" id="mon-redis-toast" aria-live="polite"></div>
+  <script src="assets/admin-layout.js"></script>
+  <script src="assets/org-common.js"></script>
+  <script src="assets/monitor-redis-page.js"></script>
+  <script>
+    if (!document.documentElement.classList.contains("embed-mode")) {
+      AdminLayout.init({ active: "mon-redis" });
+    } else {
+      AdminLayout.initTabs(document);
+    }
+  </script>
+</body>
+</html>

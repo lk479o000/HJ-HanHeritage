@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>用户管理 — 管理后台</title>
+  <link rel="stylesheet" href="assets/admin.css" />
+  <link rel="stylesheet" href="assets/org-admin.css" />
+  <link rel="stylesheet" href="assets/embed.css" />
+  <script src="assets/embed.js"></script>
+</head>
+<body class="admin-body">
+  <div class="admin-root">
+    <aside class="admin-sidebar" id="admin-sidebar"></aside>
+    <div class="admin-wrap">
+      <header class="admin-topbar" id="admin-topbar"></header>
+      <main class="admin-main">
+        <h1 class="admin-page-title">用户管理</h1>
+        <p class="admin-page-desc">搜索用户、新增、修改、删除；部门/角色/岗位与组织模块其他页数据联动（原型内存）。</p>
+        <p class="org-hint">支持按姓名、手机号筛选。</p>
+        <div class="admin-card">
+          <div class="admin-toolbar">
+            <button type="button" class="btn btn-primary" id="user-btn-add">新增用户</button>
+            <input class="admin-input" id="user-search" type="search" placeholder="姓名 / 手机" style="max-width:220px" />
+            <button type="button" class="btn btn-secondary" id="user-btn-search">搜索</button>
+            <button type="button" class="btn btn-ghost" id="user-btn-reset">重置</button>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>姓名</th>
+                  <th>部门</th>
+                  <th>角色</th>
+                  <th>岗位</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="user-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div class="admin-modal-backdrop" id="user-modal" hidden aria-hidden="true">
+    <div class="admin-modal admin-modal--lg" role="dialog" aria-modal="true" aria-labelledby="user-modal-title">
+      <div class="admin-modal-header">
+        <h2 class="admin-modal-title" id="user-modal-title">新增用户</h2>
+        <button type="button" class="admin-modal-close" data-org-modal-close aria-label="关闭">&times;</button>
+      </div>
+      <div class="admin-modal-body">
+        <div class="admin-form-row">
+          <label for="user-f-realname">姓名</label>
+          <input type="text" class="admin-input" id="user-f-realname" />
+        </div>
+        <div class="admin-form-row">
+          <label for="user-f-phone">手机</label>
+          <input type="text" class="admin-input" id="user-f-phone" />
+        </div>
+        <div class="admin-form-row">
+          <label for="user-f-dept">部门</label>
+          <select class="admin-select" id="user-f-dept"></select>
+        </div>
+        <div class="admin-form-row">
+          <label>角色（多选）</label>
+          <div id="user-role-wrap"></div>
+        </div>
+        <div class="admin-form-row">
+          <label>岗位（多选）</label>
+          <div id="user-post-wrap"></div>
+        </div>
+        <div class="admin-form-row">
+          <label for="user-f-status">状态</label>
+          <select class="admin-select" id="user-f-status">
+            <option value="enabled">正常</option>
+            <option value="disabled">停用</option>
+          </select>
+        </div>
+      </div>
+      <div class="admin-modal-footer">
+        <button type="button" class="btn btn-ghost" data-org-modal-close>取消</button>
+        <button type="button" class="btn btn-primary" id="user-btn-save">保存</button>
+      </div>
+    </div>
+  </div>
+  <div class="admin-toast" id="user-toast" aria-live="polite"></div>
+
+  <script src="assets/admin-layout.js"></script>
+  <script src="assets/org-store.js"></script>
+  <script src="assets/org-common.js"></script>
+  <script src="assets/user-page.js"></script>
+  <script>
+    if (!document.documentElement.classList.contains("embed-mode")) {
+      AdminLayout.init({ active: "user" });
+    } else {
+      AdminLayout.initTabs(document);
+    }
+  </script>
+</body>
+</html>

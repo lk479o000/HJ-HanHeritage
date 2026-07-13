@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>合江石棺展示（石棺解读）</title>
+  <link rel="stylesheet" href="assets/tablet.css" />
+  <link rel="stylesheet" href="assets/guofeng-pages.css" />
+</head>
+<body class="page-guofeng">
+  <div class="page-shell">
+    <header class="top-bar" data-ui-chrome>
+      <a class="btn-touch ghost" href="index.html" id="coffin-back-link">← 首页</a>
+      <h1>合江石棺展示 · 石棺解读</h1>
+      <div class="gf-toolbar-select">
+        <button type="button" class="btn-touch" id="coffin-prev" aria-label="上一具石棺">← 上一具</button>
+        <label for="coffin-select">编号</label>
+        <select id="coffin-select" aria-label="选择石棺编号 1至28"></select>
+        <button type="button" class="btn-touch" id="coffin-next" aria-label="下一具石棺">下一具 →</button>
+      </div>
+    </header>
+
+    <div class="layout-split coffin-layout">
+      <aside class="panel coffin-side-panel" data-ui-chrome>
+        <h2 id="coffin-title">01 号石棺简介</h2>
+        <p id="coffin-intro" class="muted" style="margin: 0 0 10px; font-size: 0.9rem"></p>
+
+        <p class="muted" style="margin: 12px 0 0; font-size: 0.82rem">
+          附属影像按钮已放到右侧三维模型下方，切换后在同一主视区展示。
+        </p>
+      </aside>
+
+      <section style="display: flex; flex-direction: column; min-height: 0">
+        <div class="coffin-main-stage">
+          <model-viewer
+            id="coffin-viewport"
+            class="proto-model-viewer coffin-main-viewer"
+            camera-controls
+            touch-action="pan-y"
+            interaction-prompt="none"
+            shadow-intensity="1"
+            environment-image="neutral"
+            camera-orbit="35deg 78deg 5m"
+            min-camera-orbit="auto 45deg auto"
+            max-camera-orbit="auto 98deg auto"
+            field-of-view="30deg"
+            alt="石棺三维模型"
+          ></model-viewer>
+          <div id="coffin-stage-media" class="coffin-stage-media" hidden>
+            <figure class="coffin-media-stage-card">
+              <img id="coffin-stage-media-img" alt="石棺附属影像" />
+              <figcaption class="muted" id="coffin-stage-media-cap"></figcaption>
+            </figure>
+          </div>
+        </div>
+        <p class="muted" id="coffin-viewport-hint" style="margin:8px 0 0; font-size:0.82rem">默认最佳观察角度：斜前方。已限制底面观察。石棺尺寸测量仅在本页三维模型上可用。</p>
+        <div class="coffin-media-switch" data-ui-chrome>
+          <button type="button" class="btn-touch primary is-active" data-stage-view="model">三维模型</button>
+          <button type="button" class="btn-touch" data-stage-view="ortho">数字正射影像图</button>
+          <button type="button" class="btn-touch" data-stage-view="rubbing">数字拓片图</button>
+          <button type="button" class="btn-touch" data-stage-view="line">数字线划图</button>
+          <button type="button" class="btn-touch" data-stage-view="enhance">数字信息增强图</button>
+        </div>
+
+        <div class="toolbar-dock" data-ui-chrome>
+          <div class="group" style="flex-direction: column; align-items: stretch">
+            <span class="label">显示与背景</span>
+            <div class="btn-row color-strip">
+              <button type="button" class="btn-touch" id="btn-fullscreen-coffin">全屏视口</button>
+              <label class="muted" for="coffin-bg-color" style="display: flex; align-items: center; gap: 8px">
+                背景取色
+                <input type="color" id="coffin-bg-color" value="#ddd5c8" aria-label="背景色取色器" />
+              </label>
+            </div>
+          </div>
+          <div id="coffin-toolbar-3d" class="group" style="flex-direction: column; align-items: stretch">
+            <span class="label">通用三维交互</span>
+            <div class="btn-row">
+              <button type="button" class="btn-touch" id="btn-coffin-zoom-out">缩小 −</button>
+              <button type="button" class="btn-touch" id="btn-coffin-zoom-in">放大 +</button>
+              <button type="button" class="btn-touch" id="btn-coffin-auto">自动旋转</button>
+              <button type="button" class="btn-touch" id="btn-coffin-reset">复位</button>
+            </div>
+          </div>
+          <div id="coffin-toolbar-measure" class="group" style="flex-direction: column; align-items: stretch">
+            <span class="label">石棺尺寸测量（仅三维模型）</span>
+            <div class="btn-row">
+              <button type="button" class="btn-touch" id="btn-coffin-measure">开启石棺测量</button>
+            </div>
+            <p class="muted" style="margin: 6px 0 0; font-size: 0.78rem; line-height: 1.45">
+              在<strong>石棺三维模型</strong>表面依次点选两点，可估算直线距离（模型坐标单位），用于尺寸参考。全景漫游、崖墓群等页面不提供此项。
+            </p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js" crossorigin="anonymous"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    (function () {
+      var MODEL_POOL = [
+        "https://modelviewer.dev/shared-assets/models/Horse.glb",
+        "https://modelviewer.dev/shared-assets/models/RobotExpressive.glb",
+        "https://modelviewer.dev/shared-assets/models/Astronaut.glb",
+        "https://modelviewer.dev/shared-assets/models/NeilArmstrong.glb"
+      ];
+      var IMG_INDOOR_A = "assets/pano-museum-indoor-hall.png";
+      var IMG_INDOOR_B = "assets/pano-museum-indoor-coffin.png";
+      var state = { idx: 1, autoRotate: false, measureOn: false, measurePts: [], stageView: "model" };
+
+      var sel = document.getElementById("coffin-select");
+      var prevBtn = document.getElementById("coffin-prev");
+      var nextBtn = document.getElementById("coffin-next");
+      var backLink = document.getElementById("coffin-back-link");
+      var mv = document.getElementById("coffin-viewport");
+      var toolbar3d = document.getElementById("coffin-toolbar-3d");
+      var toolbarMeasure = document.getElementById("coffin-toolbar-measure");
+      var btnMeasure = document.getElementById("btn-coffin-measure");
+      var stageMediaWrap = document.getElementById("coffin-stage-media");
+      var stageMediaImg = document.getElementById("coffin-stage-media-img");
+      var stageMediaCap = document.getElementById("coffin-stage-media-cap");
+      var stageViewBtns = document.querySelectorAll("[data-stage-view]");
+      var titleEl = document.getElementById("coffin-title");
+      var introEl = document.getElementById("coffin-intro");
+      var hintEl = document.getElementById("coffin-viewport-hint");
+
+      function pad2(n) { return String(n).padStart(2, "0"); }
+      function getData(n) {
+        var baseName = pad2(n) + " 号石棺";
+        var period = n <= 10 ? "东汉中期" : (n <= 20 ? "东汉晚期" : "东汉末至蜀汉初");
+        var location = n % 2 === 0 ? "合江县先市镇崖墓点" : "合江县福宝镇崖墓点";
+        var motif = n % 3 === 0 ? "车马出行、宴饮乐舞" : (n % 3 === 1 ? "神兽护棺、人物故事" : "祥瑞纹饰、礼制场景");
+        var model = MODEL_POOL[(n - 1) % MODEL_POOL.length];
+        var imgMain = n % 2 ? IMG_INDOOR_A : IMG_INDOOR_B;
+        var imgAlt = n % 2 ? IMG_INDOOR_B : IMG_INDOOR_A;
+        return {
+          name: baseName,
+          modelSrc: model,
+          intro:
+            baseName + "，年代约为" + period + "，出土于" + location + "。" +
+            "画像内容以" + motif + "为主，反映汉代社会生活与礼制观念，具有较高历史、艺术与研究价值。",
+          media: {
+            ortho: { src: imgMain, note: baseName + " · 数字正射影像图" },
+            rubbing: { src: imgAlt, note: baseName + " · 数字拓片图" },
+            line: { src: imgMain, note: baseName + " · 数字线划图" },
+            enhance: { src: imgAlt, note: baseName + " · 数字信息增强图" }
+          }
+        };
+      }
+
+      function setModelRadius(factor) {
+        var orbit = mv.getAttribute("camera-orbit") || "35deg 78deg 5m";
+        var m = orbit.match(/([\d.]+)m$/);
+        var r = m ? parseFloat(m[1]) : 5;
+        var nr = Math.max(1.4, Math.min(18, r * factor));
+        mv.setAttribute("camera-orbit", orbit.replace(/([\d.]+)m$/, nr.toFixed(2) + "m"));
+      }
+      function setStageView(view, data) {
+        state.stageView = view;
+        stageViewBtns.forEach(function (btn) {
+          var on = btn.getAttribute("data-stage-view") === view;
+          btn.classList.toggle("primary", on);
+          btn.classList.toggle("is-active", on);
+        });
+        if (toolbar3d) toolbar3d.hidden = view !== "model";
+        if (toolbarMeasure) toolbarMeasure.hidden = view !== "model";
+        if (view === "model") {
+          mv.style.display = "block";
+          stageMediaWrap.style.display = "none";
+          if (!state.measureOn) {
+            hintEl.textContent = data.name + " · 默认最佳观察角度：斜前方。已限制底面观察。石棺尺寸测量仅在本页三维模型上可用。";
+          }
+          return;
+        }
+        var media = data.media[view];
+        if (!media) return;
+        mv.style.display = "none";
+        stageMediaWrap.style.display = "block";
+        stageMediaImg.src = media.src;
+        stageMediaCap.textContent = media.note + "";
+        hintEl.textContent = data.name + " · 当前展示：" + media.note;
+      }
+      function renderCoffin(n) {
+        state.idx = n;
+        var d = getData(n);
+        sel.value = String(n);
+        titleEl.textContent = d.name + "简介";
+        introEl.textContent = d.intro;
+        state.measureOn = false;
+        state.measurePts = [];
+        if (btnMeasure) btnMeasure.textContent = "开启石棺测量";
+
+        mv.setAttribute("src", d.modelSrc);
+        mv.setAttribute("camera-orbit", "35deg 78deg 5m");
+        mv.setAttribute("camera-target", "0m 0.2m 0m");
+        mv.setAttribute("field-of-view", "30deg");
+        mv.toggleAttribute("auto-rotate", state.autoRotate);
+        setStageView(state.stageView, d);
+      }
+
+      for (var i = 1; i <= 28; i++) {
+        var o = document.createElement("option");
+        o.value = String(i);
+        o.textContent = pad2(i) + " 号石棺";
+        sel.appendChild(o);
+      }
+
+      sel.addEventListener("change", function () {
+        renderCoffin(Math.max(1, Math.min(28, Number(sel.value) || 1)));
+      });
+      if (prevBtn) {
+        prevBtn.addEventListener("click", function () {
+          renderCoffin(state.idx <= 1 ? 28 : state.idx - 1);
+        });
+      }
+      if (nextBtn) {
+        nextBtn.addEventListener("click", function () {
+          renderCoffin(state.idx >= 28 ? 1 : state.idx + 1);
+        });
+      }
+
+      document.getElementById("btn-coffin-zoom-out").addEventListener("click", function () { setModelRadius(1.15); });
+      document.getElementById("btn-coffin-zoom-in").addEventListener("click", function () { setModelRadius(0.85); });
+      document.getElementById("btn-coffin-reset").addEventListener("click", function () { renderCoffin(state.idx); });
+      document.getElementById("btn-coffin-auto").addEventListener("click", function () {
+        state.autoRotate = !state.autoRotate;
+        mv.toggleAttribute("auto-rotate", state.autoRotate);
+        this.textContent = state.autoRotate ? "停止旋转" : "自动旋转";
+      });
+      function bindCoffinMeasurePick() {
+        if (!mv || mv._coffinMeasureBound) return;
+        mv._coffinMeasureBound = true;
+        mv.addEventListener(
+          "click",
+          function (e) {
+            if (!state.measureOn || state.stageView !== "model") return;
+            if (typeof mv.positionAndNormalFromPoint !== "function") {
+              hintEl.textContent =
+                getData(state.idx).name + " · 当前环境无法取点，请使用正式部署的石棺量测能力。";
+              return;
+            }
+            mv.positionAndNormalFromPoint(e.clientX, e.clientY).then(function (hit) {
+              if (!hit || hit.position == null) {
+                hintEl.textContent = getData(state.idx).name + " · 未命中石棺模型表面，请在模型上点击。";
+                return;
+              }
+              var p = hit.position;
+              var ax = p.x != null ? p.x : p[0];
+              var ay = p.y != null ? p.y : p[1];
+              var az = p.z != null ? p.z : p[2];
+              if (!state.measurePts) state.measurePts = [];
+              state.measurePts.push([ax, ay, az]);
+              if (state.measurePts.length === 1) {
+                hintEl.textContent =
+                  getData(state.idx).name + " · 第 1 个点已记录，请在石棺模型上点击第 2 个点。";
+                return;
+              }
+              var a = state.measurePts[0];
+              var b = state.measurePts[1];
+              var dx = b[0] - a[0];
+              var dy = b[1] - a[1];
+              var dz = b[2] - a[2];
+              var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+              hintEl.textContent =
+                getData(state.idx).name +
+                " · 两测点直线距离约 " +
+                dist.toFixed(4) +
+                "（模型坐标单位，仅供参考）。可继续点击测量下一组。";
+              state.measurePts = [];
+            }).catch(function () {
+              hintEl.textContent = getData(state.idx).name + " · 取点失败，请待模型加载完成后重试。";
+            });
+          },
+          true
+        );
+      }
+
+      if (btnMeasure) {
+        btnMeasure.addEventListener("click", function () {
+          state.measureOn = !state.measureOn;
+          state.measurePts = [];
+          btnMeasure.textContent = state.measureOn ? "关闭石棺测量" : "开启石棺测量";
+          if (state.stageView === "model") {
+            hintEl.textContent = state.measureOn
+              ? getData(state.idx).name + " · 石棺测量已开启：请在三维石棺上依次点击两个点。"
+              : getData(state.idx).name + " · 石棺测量已关闭。";
+          }
+        });
+      }
+
+      if (window.customElements && typeof customElements.whenDefined === "function") {
+        customElements.whenDefined("model-viewer").then(bindCoffinMeasurePick);
+      } else {
+        setTimeout(bindCoffinMeasurePick, 400);
+      }
+      stageViewBtns.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          setStageView(btn.getAttribute("data-stage-view"), getData(state.idx));
+        });
+      });
+
+      var q = window.location.search.match(/[?&]coffin=(\d+)/);
+      var fromEar = /[?&]from=ear(?:&|$)/.test(window.location.search);
+      if (fromEar && backLink) {
+        backLink.href = "cliff-detail.html?cliff=5";
+        backLink.textContent = "← 返回大耳朵崖墓群";
+      }
+      var initNo = q ? Math.max(1, Math.min(28, Number(q[1]) || 1)) : 1;
+      renderCoffin(initNo);
+    })();
+  </script>
+</body>
+</html>

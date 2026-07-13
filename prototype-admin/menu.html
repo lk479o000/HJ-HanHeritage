@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>菜单管理 — 管理后台</title>
+  <link rel="stylesheet" href="assets/admin.css" />
+  <link rel="stylesheet" href="assets/menu-admin.css" />
+  <link rel="stylesheet" href="assets/embed.css" />
+  <script src="assets/embed.js"></script>
+</head>
+<body class="admin-body">
+  <div class="admin-root">
+    <aside class="admin-sidebar" id="admin-sidebar"></aside>
+    <div class="admin-wrap">
+      <header class="admin-topbar" id="admin-topbar"></header>
+      <main class="admin-main">
+        <h1 class="admin-page-title">菜单管理</h1>
+        <nav class="menu-breadcrumb" aria-label="面包屑">首页 <span>/</span> 系统配置 <span>/</span> 菜单管理</nav>
+
+        <div class="menu-filter-card">
+          <div class="menu-filter-field">
+            <label for="menu-filter-name">菜单名称</label>
+            <input type="search" class="admin-input" id="menu-filter-name" placeholder="请输入菜单名称" />
+          </div>
+          <div class="menu-filter-field">
+            <label for="menu-filter-status">状态</label>
+            <select class="admin-select" id="menu-filter-status">
+              <option value="all">全部</option>
+              <option value="normal">正常</option>
+              <option value="disabled">停用</option>
+            </select>
+          </div>
+          <button type="button" class="btn btn-primary" id="menu-search">搜索</button>
+          <button type="button" class="btn" id="menu-reset">重置</button>
+        </div>
+
+        <div class="admin-card">
+          <div class="menu-toolbar-row">
+            <button type="button" class="btn btn-primary" id="menu-add-root">+ 新增</button>
+            <button type="button" class="btn" id="menu-expand-all">展开全部</button>
+            <button type="button" class="btn" id="menu-collapse-all">折叠全部</button>
+            <button type="button" class="btn btn-primary" id="menu-save-sort">保存排序</button>
+            <span style="font-size:0.8rem;color:var(--admin-muted)">树表数据存 localStorage；带「路由绑定」的节点与侧栏 <code>admin-layout</code> 联动，停用后侧栏入口隐藏。</span>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th style="min-width:220px">菜单名称</th>
+                  <th style="width:100px">图标</th>
+                  <th style="width:88px">排序</th>
+                  <th style="min-width:120px">权限标识</th>
+                  <th style="min-width:140px">组件路径</th>
+                  <th style="width:88px">状态</th>
+                  <th style="width:168px">创建时间</th>
+                  <th style="min-width:200px">操作</th>
+                </tr>
+              </thead>
+              <tbody id="menu-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div class="admin-modal-backdrop" id="menu-form-modal" hidden aria-hidden="true">
+    <div class="admin-modal admin-modal--lg" role="dialog" aria-modal="true" aria-labelledby="menu-form-title">
+      <div class="admin-modal-header">
+        <h2 class="admin-modal-title" id="menu-form-title">修改菜单</h2>
+        <button type="button" class="admin-modal-close" data-org-modal-close aria-label="关闭">&times;</button>
+      </div>
+      <div class="admin-modal-body">
+        <div class="admin-form-row">
+          <label for="menu-f-name">菜单名称</label>
+          <input type="text" class="admin-input" id="menu-f-name" />
+        </div>
+        <div class="admin-form-row">
+          <label for="menu-f-sort">排序</label>
+          <input type="number" class="admin-input" id="menu-f-sort" style="max-width:120px" />
+        </div>
+        <div class="admin-form-row">
+          <label for="menu-f-icon">图标标识</label>
+          <input type="text" class="admin-input" id="menu-f-icon" placeholder="如 guide、server（占位）" />
+        </div>
+        <div class="admin-form-row">
+          <label for="menu-f-perms">权限标识</label>
+          <input type="text" class="admin-input" id="menu-f-perms" placeholder="如 system:menu:list" />
+        </div>
+        <div class="admin-form-row">
+          <label for="menu-f-component">组件路径</label>
+          <input type="text" class="admin-input" id="menu-f-component" placeholder="如 system/menu/index" />
+        </div>
+        <div class="admin-form-row">
+          <label for="menu-f-status">状态</label>
+          <select class="admin-select" id="menu-f-status" style="max-width:200px">
+            <option value="normal">正常</option>
+            <option value="disabled">停用</option>
+          </select>
+        </div>
+        <div class="admin-form-row">
+          <label for="menu-f-link">侧栏绑定 ID</label>
+          <input type="text" class="admin-input" id="menu-f-link" placeholder="仅新增时可填，如 cliff、dashboard" />
+        </div>
+        <p class="admin-form-hint" id="menu-link-hint">与 <code>admin-layout.js</code> 中菜单项 <code>id</code> 一致时，可覆盖侧栏名称与排序；停用后侧栏不显示该入口。</p>
+      </div>
+      <div class="admin-modal-footer">
+        <button type="button" class="btn btn-ghost" data-org-modal-close>取消</button>
+        <button type="button" class="btn btn-primary" id="menu-form-save">确定</button>
+      </div>
+    </div>
+  </div>
+  <div class="admin-toast" id="menu-toast" aria-live="polite"></div>
+
+  <script src="assets/sys-config-store.js"></script>
+  <script src="assets/admin-layout.js"></script>
+  <script src="assets/org-common.js"></script>
+  <script src="assets/menu-page.js"></script>
+  <script>
+    if (!document.documentElement.classList.contains("embed-mode")) {
+      AdminLayout.init({ active: "menu" });
+    } else {
+      AdminLayout.initTabs(document);
+    }
+  </script>
+</body>
+</html>

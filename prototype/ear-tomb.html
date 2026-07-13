@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>大耳朵崖墓群</title>
+  <link rel="stylesheet" href="assets/tablet.css" />
+  <link rel="stylesheet" href="assets/guofeng-pages.css" />
+</head>
+<body class="page-guofeng">
+  <div class="page-shell">
+    <header class="top-bar" data-ui-chrome>
+      <a class="btn-touch ghost" href="index.html" aria-label="返回首页">← 首页</a>
+      <h1>大耳朵崖墓群</h1>
+    </header>
+
+    <div class="layout-split">
+      <aside class="panel" data-ui-chrome>
+        <h2>大耳朵崖墓群简介</h2>
+        <figure class="gf-intro-figure">
+          <img src="https://pannellum.org/images/alma.jpg" alt="大耳朵崖墓群简介示意图" loading="lazy" decoding="async" />
+          <figcaption class="muted">图：大耳朵崖墓群实景图</figcaption>
+        </figure>
+        <p class="muted" style="margin: 10px 0 0; font-size: 0.92rem">
+          大耳朵崖墓群位于合江县崖墓文化带核心区，本页整合<strong>崖墓群实景三维</strong>与<strong>关联石棺模型</strong>。支持自由平移/旋转/缩放，且可一键跳转至近景与全景视点后继续自由浏览。
+        </p>
+        <h3>石棺入口</h3>
+        <div class="btn-row gf-model-switch" style="margin-top: 8px">
+          <button type="button" class="btn-touch primary is-active" data-model="tomb">崖墓群模型</button>
+          <a class="btn-touch" href="coffin.html?coffin=1&from=ear">石棺 1</a>
+          <a class="btn-touch" href="coffin.html?coffin=2&from=ear">石棺 2</a>
+        </div>
+        <p id="ear-scene-meta" class="muted" style="margin: 10px 0 0; font-size: 0.84rem"></p>
+      </aside>
+
+      <section style="display: flex; flex-direction: column; min-height: 0">
+        <model-viewer
+          id="ear-model-viewer"
+          class="proto-model-viewer"
+          camera-controls
+          touch-action="pan-y"
+          interaction-prompt="none"
+          shadow-intensity="1"
+          environment-image="neutral"
+          alt="大耳朵崖墓群及石棺三维模型"
+          style="flex: 1; min-height: 380px"
+        ></model-viewer>
+
+        <div class="toolbar-dock" data-ui-chrome>
+          <div class="group" style="flex-direction: column; align-items: stretch">
+            <span class="label">固定视点（仅崖墓群模型）</span>
+            <div class="btn-row">
+              <button type="button" class="btn-touch primary" id="btn-ear-near" title="切换至崖墓近景预设相机">大耳朵崖墓近景</button>
+              <button type="button" class="btn-touch primary" id="btn-ear-far" title="切换至崖墓全景预设相机">大耳朵崖墓全景</button>
+            </div>
+          </div>
+          <div class="group" style="flex-direction: column; align-items: stretch">
+            <span class="label">通用三维交互</span>
+            <div class="btn-row">
+              <button type="button" class="btn-touch" id="btn-ear-zoom-out">缩小 −</button>
+              <button type="button" class="btn-touch" id="btn-ear-zoom-in">放大 +</button>
+              <button type="button" class="btn-touch" id="btn-ear-auto-rotate">自动旋转</button>
+              <button type="button" class="btn-touch" id="btn-ear-reset">复位</button>
+            </div>
+          </div>
+          <div class="group" style="flex-direction: column; align-items: stretch">
+            <span class="label">显示与背景</span>
+            <div class="btn-row color-strip">
+              <button type="button" class="btn-touch" id="btn-ear-fullscreen">全屏视口</button>
+              <label class="muted" for="ear-bg-color" style="display: flex; align-items: center; gap: 8px">
+                背景取色
+                <input type="color" id="ear-bg-color" value="#d9e5e2" aria-label="崖墓群背景色取色器" />
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="proto-foot" data-ui-chrome>
+      <a href="panorama.html">全景漫游</a>
+    </footer>
+  </div>
+
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js" crossorigin="anonymous"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    (function () {
+      var MODELS = {
+        tomb: {
+          name: "大耳朵崖墓群",
+          src: "https://modelviewer.dev/shared-assets/models/Astronaut.glb",
+          near: "22deg 78deg 12m",
+          far: "10deg 35deg 34m",
+          target: "0m 0m 0m",
+          fov: "30deg",
+          note: "无人机实景三维模型"
+        }
+      };
+
+      var state = {
+        active: "tomb",
+        autoRotate: false
+      };
+
+      var mv = document.getElementById("ear-model-viewer");
+      var meta = document.getElementById("ear-scene-meta");
+      var switchBtns = document.querySelectorAll(".gf-model-switch [data-model]");
+      var btnNear = document.getElementById("btn-ear-near");
+      var btnFar = document.getElementById("btn-ear-far");
+      var btnZoomIn = document.getElementById("btn-ear-zoom-in");
+      var btnZoomOut = document.getElementById("btn-ear-zoom-out");
+      var btnAuto = document.getElementById("btn-ear-auto-rotate");
+      var btnReset = document.getElementById("btn-ear-reset");
+      var btnFs = document.getElementById("btn-ear-fullscreen");
+      var bgColor = document.getElementById("ear-bg-color");
+
+      function setMeta(msg) {
+        if (meta) meta.textContent = msg;
+      }
+
+      function getRadius(orbit) {
+        var m = String(orbit || "").match(/([\d.]+)m$/);
+        return m ? parseFloat(m[1]) : 10;
+      }
+
+      function setOrbitRadius(r) {
+        var cur = mv.getAttribute("camera-orbit") || "0deg 75deg 10m";
+        var parts = cur.split(" ");
+        parts[2] = Math.max(1, r).toFixed(2) + "m";
+        mv.setAttribute("camera-orbit", parts.join(" "));
+      }
+
+      function applyScene(key) {
+        var cfg = MODELS[key];
+        if (!mv || !cfg) return;
+        state.active = key;
+        mv.setAttribute("src", cfg.src);
+        mv.setAttribute("camera-target", cfg.target);
+        mv.setAttribute("camera-orbit", cfg.far);
+        mv.setAttribute("field-of-view", cfg.fov);
+        mv.toggleAttribute("auto-rotate", state.autoRotate);
+        switchBtns.forEach(function (btn) {
+          var active = btn.getAttribute("data-model") === key;
+          btn.classList.toggle("primary", active);
+          btn.classList.toggle("is-active", active);
+        });
+        setMeta("当前：" + cfg.name + " · " + cfg.note + " · 可继续自由平移/旋转/缩放");
+      }
+
+      function jumpView(type) {
+        if (state.active !== "tomb") {
+          setMeta("固定视点仅作用于崖墓群模型；当前为" + MODELS[state.active].name + "。");
+          return;
+        }
+        var cfg = MODELS.tomb;
+        mv.setAttribute("camera-orbit", type === "near" ? cfg.near : cfg.far);
+        mv.setAttribute("camera-target", cfg.target);
+        mv.setAttribute("field-of-view", cfg.fov);
+        setMeta((type === "near" ? "已跳转：大耳朵崖墓近景。" : "已跳转：大耳朵崖墓全景。") + " 你可继续自由浏览。");
+      }
+
+      if (!mv) return;
+      applyScene("tomb");
+
+      switchBtns.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          applyScene(btn.getAttribute("data-model"));
+        });
+      });
+
+      if (btnNear) btnNear.addEventListener("click", function () { jumpView("near"); });
+      if (btnFar) btnFar.addEventListener("click", function () { jumpView("far"); });
+
+      if (btnZoomIn) {
+        btnZoomIn.addEventListener("click", function () {
+          var r = getRadius(mv.getAttribute("camera-orbit"));
+          setOrbitRadius(r * 0.85);
+        });
+      }
+      if (btnZoomOut) {
+        btnZoomOut.addEventListener("click", function () {
+          var r = getRadius(mv.getAttribute("camera-orbit"));
+          setOrbitRadius(r * 1.15);
+        });
+      }
+
+      if (btnAuto) {
+        btnAuto.addEventListener("click", function () {
+          state.autoRotate = !state.autoRotate;
+          mv.toggleAttribute("auto-rotate", state.autoRotate);
+          btnAuto.textContent = state.autoRotate ? "停止旋转" : "自动旋转";
+        });
+      }
+
+      if (btnReset) {
+        btnReset.addEventListener("click", function () {
+          applyScene(state.active);
+        });
+      }
+
+      if (bgColor) {
+        bgColor.addEventListener("input", function () {
+          mv.style.background = bgColor.value;
+        });
+      }
+
+      if (btnFs) {
+        btnFs.addEventListener("click", function () {
+          if (!document.fullscreenElement) {
+            mv.requestFullscreen().catch(function () {});
+          } else {
+            document.exitFullscreen();
+          }
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

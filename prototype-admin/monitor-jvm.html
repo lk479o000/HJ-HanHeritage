@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>服务监控 — 管理后台</title>
+  <link rel="stylesheet" href="assets/admin.css" />
+  <link rel="stylesheet" href="assets/monitor-pages.css" />
+  <link rel="stylesheet" href="assets/embed.css" />
+  <script src="assets/embed.js"></script>
+</head>
+<body class="admin-body">
+  <div class="admin-root">
+    <aside class="admin-sidebar" id="admin-sidebar"></aside>
+    <div class="admin-wrap">
+      <header class="admin-topbar" id="admin-topbar"></header>
+      <main class="admin-main">
+        <h1 class="admin-page-title">服务监控</h1>
+        <nav class="mon-breadcrumb" aria-label="面包屑">首页 <span>/</span> 运维监控 <span>/</span> 服务监控</nav>
+        <p class="mon-page-desc">监控宿主机 CPU、内存、服务器（虚拟机）信息、Java 虚拟机与磁盘状态。以下为演示数据，点击刷新或开启自动刷新可模拟波动。</p>
+
+        <div class="mon-toolbar-row">
+          <button type="button" class="btn btn-primary" id="mon-service-refresh">刷新</button>
+          <label><input type="checkbox" id="mon-service-auto" /> 每 5 秒自动刷新</label>
+        </div>
+
+        <section class="mon-dash-card" aria-labelledby="mon-cpu-title">
+          <h2 class="mon-dash-card-title" id="mon-cpu-title">CPU</h2>
+          <div class="mon-dash-card-body">
+            <table class="mon-attr-table">
+              <tbody>
+                <tr><th>核心数</th><td id="mon-cpu-cores">—</td></tr>
+                <tr><th>用户使用率</th><td id="mon-cpu-user">—</td></tr>
+                <tr><th>系统使用率</th><td id="mon-cpu-sys">—</td></tr>
+                <tr><th>当前空闲率</th><td id="mon-cpu-idle">—</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="mon-dash-card" aria-labelledby="mon-mem-title">
+          <h2 class="mon-dash-card-title" id="mon-mem-title">内存</h2>
+          <div class="mon-dash-card-body">
+            <table class="mon-attr-table mon-attr-table--triple">
+              <thead>
+                <tr>
+                  <th>属性</th>
+                  <th>内存</th>
+                  <th>JVM</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th>总内存</th>
+                  <td class="num" id="mon-mem-sys-total">—</td>
+                  <td class="num" id="mon-mem-jvm-total">—</td>
+                </tr>
+                <tr>
+                  <th>已用内存</th>
+                  <td class="num" id="mon-mem-sys-used">—</td>
+                  <td class="num" id="mon-mem-jvm-used">—</td>
+                </tr>
+                <tr>
+                  <th>剩余内存</th>
+                  <td class="num" id="mon-mem-sys-free">—</td>
+                  <td class="num" id="mon-mem-jvm-free">—</td>
+                </tr>
+                <tr>
+                  <th>使用率</th>
+                  <td class="num" id="mon-mem-sys-pct">—</td>
+                  <td class="num" id="mon-mem-jvm-pct">—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="mon-dash-card" aria-labelledby="mon-srv-title">
+          <h2 class="mon-dash-card-title" id="mon-srv-title">服务器信息</h2>
+          <div class="mon-dash-card-body mon-kv-grid">
+            <div class="mon-kv-cell"><span class="mon-kv-label">服务器名称</span><span class="mon-kv-val" id="mon-srv-name">—</span></div>
+            <div class="mon-kv-cell"><span class="mon-kv-label">操作系统</span><span class="mon-kv-val" id="mon-srv-os">—</span></div>
+            <div class="mon-kv-cell"><span class="mon-kv-label">服务器 IP</span><span class="mon-kv-val" id="mon-srv-ip">—</span></div>
+            <div class="mon-kv-cell"><span class="mon-kv-label">系统架构</span><span class="mon-kv-val" id="mon-srv-arch">—</span></div>
+          </div>
+        </section>
+
+        <section class="mon-dash-card" aria-labelledby="mon-jvm-title">
+          <h2 class="mon-dash-card-title" id="mon-jvm-title">Java 虚拟机信息</h2>
+          <div class="mon-dash-card-body mon-kv-grid">
+            <div class="mon-kv-cell"><span class="mon-kv-label">Java 名称</span><span class="mon-kv-val" id="mon-jvm-name">—</span></div>
+            <div class="mon-kv-cell"><span class="mon-kv-label">Java 版本</span><span class="mon-kv-val" id="mon-jvm-ver">—</span></div>
+            <div class="mon-kv-cell"><span class="mon-kv-label">启动时间</span><span class="mon-kv-val" id="mon-jvm-start">—</span></div>
+            <div class="mon-kv-cell"><span class="mon-kv-label">运行时长</span><span class="mon-kv-val" id="mon-jvm-uptime">—</span></div>
+            <div class="mon-kv-cell"><span class="mon-kv-label">安装路径</span><span class="mon-kv-val" id="mon-jvm-home">—</span></div>
+            <div class="mon-kv-cell"><span class="mon-kv-label">项目路径</span><span class="mon-kv-val" id="mon-jvm-proj">—</span></div>
+            <div class="mon-kv-cell mon-kv-cell--full">
+              <span class="mon-kv-label">运行参数</span>
+              <span class="mon-kv-val" id="mon-jvm-args">—</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="mon-dash-card" aria-labelledby="mon-disk-title">
+          <h2 class="mon-dash-card-title" id="mon-disk-title">磁盘状态</h2>
+          <div class="mon-dash-card-body mon-data-table-wrap">
+            <table class="mon-data-table">
+              <thead>
+                <tr>
+                  <th>盘符</th>
+                  <th>总容量</th>
+                  <th>已用</th>
+                  <th>可用</th>
+                  <th>使用率</th>
+                </tr>
+              </thead>
+              <tbody id="mon-disk-tbody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="mon-dash-card" aria-labelledby="mon-vm-title">
+          <h2 class="mon-dash-card-title" id="mon-vm-title">虚拟机与节点</h2>
+          <div class="mon-dash-card-body mon-data-table-wrap">
+            <table class="mon-data-table">
+              <thead>
+                <tr>
+                  <th>名称</th>
+                  <th>类型</th>
+                  <th>状态</th>
+                  <th>CPU</th>
+                  <th>内存</th>
+                </tr>
+              </thead>
+              <tbody id="mon-vm-tbody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <p class="mon-footer-meta" id="mon-refresh-meta"></p>
+      </main>
+    </div>
+  </div>
+  <div class="admin-toast" id="mon-jvm-toast" aria-live="polite"></div>
+  <script src="assets/admin-layout.js"></script>
+  <script src="assets/org-common.js"></script>
+  <script src="assets/monitor-jvm-page.js"></script>
+  <script>
+    if (!document.documentElement.classList.contains("embed-mode")) {
+      AdminLayout.init({ active: "mon-jvm" });
+    } else {
+      AdminLayout.initTabs(document);
+    }
+  </script>
+</body>
+</html>

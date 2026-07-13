@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>石棺分布导览</title>
+  <link rel="stylesheet" href="assets/tablet.css" />
+  <link rel="stylesheet" href="assets/home-map.css" />
+</head>
+<body class="page-guofeng">
+  <div class="page-shell coffin-map-page">
+    <header class="top-bar" data-ui-chrome>
+      <a class="btn-touch ghost" href="index.html">← 首页</a>
+      <h1>石棺分布导览</h1>
+    </header>
+
+    <section class="panel coffin-map-panel">
+      <p class="muted" style="margin: 0 0 10px; font-size: 0.9rem">
+        地图标点为模拟点位。点击石棺编号可进入对应石棺详情界面。
+      </p>
+      <div class="coffin-map-stage" role="application" aria-label="石棺分布模拟地图">
+        <img
+          class="coffin-map-img"
+          src="assets/hejiang-han-cliff-distribution.png"
+          alt="石棺分布模拟底图"
+          width="1200"
+          height="900"
+          decoding="async"
+        />
+        <div class="coffin-map-markers" id="coffin-map-markers"></div>
+      </div>
+    </section>
+  </div>
+
+  <script src="assets/coffin-map.js"></script>
+</body>
+</html>

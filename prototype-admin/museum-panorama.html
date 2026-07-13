@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>博物馆全景管理 — 管理后台</title>
+  <link rel="stylesheet" href="assets/admin.css" />
+  <link rel="stylesheet" href="assets/embed.css" />
+  <link rel="stylesheet" href="assets/museum-panorama.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css" crossorigin="anonymous" />
+  <script src="assets/embed.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js" crossorigin="anonymous"></script>
+</head>
+<body class="admin-body">
+  <div class="admin-root">
+    <aside class="admin-sidebar" id="admin-sidebar"></aside>
+    <div class="admin-wrap">
+      <header class="admin-topbar" id="admin-topbar"></header>
+      <main class="admin-main">
+        <h1 class="admin-page-title">博物馆全景管理</h1>
+        <p class="admin-page-desc">
+          本页即博物馆全景的<strong>管理端（后台）</strong>：维护资源列表、上下线与基础信息；下方为<strong>配置校验用预览</strong>（与游客端展示布局对齐，便于确认分类、视点与片源绑定）。正式环境数据入库后由接口下发至前端。
+        </p>
+
+        <section class="admin-card museum-pano-viz-card" id="museum-pano-viz">
+          <h2>全景配置预览（管理端）</h2>
+          <div class="museum-pano-toolbar-row">
+            <p class="admin-muted" style="margin: 0; flex: 1; min-width: 200px">
+              非游客端页面：此处仅用于在后台验证「分类（空中 / 地面 / 内部）+ 视点 + 片源」的配置效果。右侧为简介 / 设置入口（示意）；底部为分类与视点缩略条。拖拽环视与 Pannellum 控件一致。
+            </p>
+          </div>
+
+          <div class="museum-pano-stage" id="museum-pano-stage">
+            <div id="museum-admin-pano-host" class="museum-pano-host" role="region" aria-label="博物馆全景预览"></div>
+            <div class="museum-pano-overlay">
+              <div class="museum-pano-topbar">
+                <span class="museum-pano-brand" title="管理端预览区">后台预览</span>
+              </div>
+              <div class="museum-pano-rail">
+                <button type="button" data-museum-panel="intro" title="场景简介">简介</button>
+                <button type="button" data-museum-panel="settings" title="预览参数">设置</button>
+              </div>
+              <div class="museum-pano-panel" id="museum-pano-intro-panel" hidden>
+                <h4>场景简介</h4>
+                <p style="margin: 0">
+                  合江县汉代画像石棺博物馆：标题、说明与资源 ID 在本页及下方列表中维护，经后端保存后下发至展示端。当前「空中」演示为等距柱状片源，用于校验预览链路。
+                </p>
+              </div>
+              <div class="museum-pano-panel" id="museum-pano-settings-panel" hidden>
+                <h4>预览设置（示意）</h4>
+                <p style="margin: 0">
+                  正式环境可在此配置默认初始视角、热点、自动导览等。原型阶段仅演示 UI 位置，不做持久化。
+                </p>
+              </div>
+              <div class="museum-pano-placeholder" id="museum-pano-placeholder" hidden></div>
+              <div class="museum-pano-bottomdock">
+                <div class="museum-pano-cats" id="museum-pano-cats" role="tablist" aria-label="全景分类"></div>
+                <div class="museum-pano-thumbs" id="museum-pano-thumbs" aria-label="视点切换"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="admin-card">
+          <h2>全景资源列表（后端管理）</h2>
+          <p class="admin-muted" style="margin: 0 0 10px; font-size: 0.82rem">
+            按「空中 / 地面 / 内部」Tab 切换维护。上传文件后，文件名（去扩展名）即为位置名称，用于下发前端视点选择信息。
+          </p>
+          <div class="admin-toolbar" style="margin-bottom: 10px">
+            <button type="button" class="btn" id="museum-pano-jump-preview">进入预览区</button>
+          </div>
+
+          <section class="museum-res-group">
+            <div class="museum-res-tabs" role="tablist" aria-label="全景资源分类">
+              <button type="button" class="museum-res-tab is-active" data-res-tab="air" aria-selected="true">空中</button>
+              <button type="button" class="museum-res-tab" data-res-tab="ground" aria-selected="false">地面</button>
+              <button type="button" class="museum-res-tab" data-res-tab="inner" aria-selected="false">内部</button>
+            </div>
+            <div class="museum-res-group-head">
+              <h3 id="museum-res-current-title">空中全景</h3>
+              <div class="admin-toolbar-group">
+                <button type="button" class="btn btn-primary" id="museum-upload-active-btn">上传当前分类全景</button>
+                <input type="file" id="museum-upload-air" accept="image/jpeg,image/jpg,image/png,image/webp" multiple hidden />
+                <input type="file" id="museum-upload-ground" accept="image/jpeg,image/jpg,image/png,image/webp" multiple hidden />
+                <input type="file" id="museum-upload-inner" accept="image/jpeg,image/jpg,image/png,image/webp" multiple hidden />
+              </div>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>位置名称（文件名）</th>
+                    <th>资源 ID</th>
+                    <th>大小</th>
+                    <th>上传时间</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="museum-res-active"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="assets/admin-layout.js"></script>
+  <script src="assets/museum-panorama.js"></script>
+  <script>
+    if (!document.documentElement.classList.contains("embed-mode")) {
+      AdminLayout.init({ active: "museum-pano" });
+    } else {
+      AdminLayout.initTabs(document);
+    }
+  </script>
+</body>
+</html>

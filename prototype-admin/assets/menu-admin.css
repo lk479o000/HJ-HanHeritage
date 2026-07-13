@@ -1,0 +1,111 @@
+/* 菜单管理：树表、筛选区（对齐常见后台样式） */
+
+.menu-breadcrumb {
+  margin: 0 0 14px;
+  font-size: 0.84rem;
+  color: var(--admin-muted);
+}
+
+.menu-breadcrumb span {
+  margin: 0 4px;
+}
+
+.menu-filter-card {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  background: #fff;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 16px;
+}
+
+.menu-filter-field label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--admin-muted);
+  margin-bottom: 4px;
+}
+
+.menu-filter-field .admin-input,
+.menu-filter-field .admin-select {
+  min-width: 180px;
+}
+
+.menu-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.menu-tree-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.menu-tree-toggle {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 0.7rem;
+  line-height: 1;
+  border-radius: 4px;
+}
+
+.menu-tree-toggle:hover {
+  background: #f1f5f9;
+}
+
+.menu-tree-toggle.is-placeholder {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.menu-tree-indent {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 0;
+  height: 1px;
+}
+
+.menu-icon-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-family: ui-monospace, monospace;
+  color: #475569;
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.menu-sort-input {
+  max-width: 72px;
+}
+
+.menu-table-actions {
+  white-space: nowrap;
+}
+
+.menu-table-actions .btn {
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  margin-right: 4px;
+}
+
+.menu-table-actions .btn:last-child {
+  margin-right: 0;
+}

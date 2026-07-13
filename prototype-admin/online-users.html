@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>在线用户 — 管理后台</title>
+  <link rel="stylesheet" href="assets/admin.css" />
+  <link rel="stylesheet" href="assets/embed.css" />
+  <script src="assets/embed.js"></script>
+</head>
+<body class="admin-body">
+  <div class="admin-root">
+    <aside class="admin-sidebar" id="admin-sidebar"></aside>
+    <div class="admin-wrap">
+      <header class="admin-topbar" id="admin-topbar"></header>
+      <main class="admin-main">
+        <h1 class="admin-page-title">在线用户</h1>
+        <p class="admin-page-desc">当前会话列表（原型内存）；可强制下线，并写入一条登录日志说明。</p>
+        <div class="admin-card">
+          <div class="admin-toolbar">
+            <button type="button" class="btn" id="online-refresh">刷新列表</button>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>用户</th>
+                  <th>部门</th>
+                  <th>登录时间</th>
+                  <th>IP</th>
+                  <th>客户端</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="online-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+  <div class="admin-toast" id="online-toast" aria-live="polite"></div>
+  <script src="assets/admin-layout.js"></script>
+  <script src="assets/log-monitor-store.js"></script>
+  <script src="assets/org-common.js"></script>
+  <script src="assets/online-users-page.js"></script>
+  <script>
+    if (!document.documentElement.classList.contains("embed-mode")) {
+      AdminLayout.init({ active: "online" });
+    } else {
+      AdminLayout.initTabs(document);
+    }
+  </script>
+</body>
+</html>

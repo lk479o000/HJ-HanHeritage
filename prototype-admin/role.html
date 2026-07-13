@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>角色管理 — 管理后台</title>
+  <link rel="stylesheet" href="assets/admin.css" />
+  <link rel="stylesheet" href="assets/org-admin.css" />
+  <link rel="stylesheet" href="assets/embed.css" />
+  <script src="assets/embed.js"></script>
+</head>
+<body class="admin-body">
+  <div class="admin-root">
+    <aside class="admin-sidebar" id="admin-sidebar"></aside>
+    <div class="admin-wrap">
+      <header class="admin-topbar" id="admin-topbar"></header>
+      <main class="admin-main">
+        <h1 class="admin-page-title">角色管理</h1>
+        <p class="admin-page-desc">多级角色树；在「权限配置」中为各角色勾选功能权限并设置数据范围，供用户授权使用。</p>
+        <div class="admin-card" data-admin-tabs>
+          <div class="admin-tabs">
+            <button type="button" class="admin-tab is-active" data-tab="r1">角色列表</button>
+            <button type="button" class="admin-tab" data-tab="r2">权限配置</button>
+          </div>
+          <div id="r1" class="admin-tab-panel">
+            <p class="org-hint">列表按层级缩进；删除前需解除子角色与用户关联。</p>
+            <div class="admin-toolbar">
+              <button type="button" class="btn btn-primary" id="role-btn-add">新增角色</button>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>角色名</th>
+                    <th>编码</th>
+                    <th>上级角色</th>
+                    <th>权限</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="role-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div id="r2" class="admin-tab-panel" hidden>
+            <p class="org-tab-hint">选择角色后勾选菜单权限，并设置数据范围；保存后写入当前浏览器会话内存。</p>
+            <div class="admin-form-row org-role-picker">
+              <label for="role-perm-select">当前角色</label>
+              <select class="admin-select" id="role-perm-select" style="max-width:360px"></select>
+            </div>
+            <p class="org-hint" id="role-perm-role-hint"></p>
+            <div class="admin-form-row">
+              <label>功能权限</label>
+              <div id="role-perm-menus"></div>
+            </div>
+            <div class="admin-form-row">
+              <label for="role-perm-datascope">数据权限</label>
+              <select class="admin-select" id="role-perm-datascope" style="max-width:280px">
+                <option value="all">全部数据</option>
+                <option value="dept">本部门及下级</option>
+                <option value="custom">自定义范围（占位）</option>
+              </select>
+            </div>
+            <button type="button" class="btn btn-primary" id="role-perm-save">保存权限</button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div class="admin-modal-backdrop" id="role-modal" hidden aria-hidden="true">
+    <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="role-modal-title">
+      <div class="admin-modal-header">
+        <h2 class="admin-modal-title" id="role-modal-title">新增角色</h2>
+        <button type="button" class="admin-modal-close" data-org-modal-close aria-label="关闭">&times;</button>
+      </div>
+      <div class="admin-modal-body">
+        <div class="admin-form-row">
+          <label for="role-f-name">角色名称</label>
+          <input type="text" class="admin-input" id="role-f-name" />
+        </div>
+        <div class="admin-form-row">
+          <label for="role-f-code">编码</label>
+          <input type="text" class="admin-input" id="role-f-code" placeholder="如 SYS_ADMIN" />
+        </div>
+        <div class="admin-form-row">
+          <label for="role-f-parent">上级角色</label>
+          <select class="admin-select" id="role-f-parent"></select>
+        </div>
+        <div class="admin-form-row">
+          <label for="role-f-sort">排序</label>
+          <input type="number" class="admin-input" id="role-f-sort" style="max-width:120px" />
+        </div>
+        <div class="admin-form-row">
+          <label for="role-f-remark">说明</label>
+          <textarea class="admin-textarea" id="role-f-remark" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="admin-modal-footer">
+        <button type="button" class="btn btn-ghost" data-org-modal-close>取消</button>
+        <button type="button" class="btn btn-primary" id="role-btn-save">保存</button>
+      </div>
+    </div>
+  </div>
+  <div class="admin-toast" id="role-toast" aria-live="polite"></div>
+
+  <script src="assets/admin-layout.js"></script>
+  <script src="assets/org-store.js"></script>
+  <script src="assets/org-permissions.js"></script>
+  <script src="assets/org-common.js"></script>
+  <script src="assets/role-page.js"></script>
+  <script>
+    if (!document.documentElement.classList.contains("embed-mode")) {
+      AdminLayout.init({ active: "role" });
+    } else {
+      AdminLayout.initTabs(document);
+    }
+  </script>
+</body>
+</html>

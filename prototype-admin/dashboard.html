@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>首页概览 — 管理后台</title>
+  <link rel="stylesheet" href="assets/admin.css" />
+  <link rel="stylesheet" href="assets/embed.css" />
+  <script src="assets/embed.js"></script>
+</head>
+<body class="admin-body">
+  <div class="admin-root">
+    <aside class="admin-sidebar" id="admin-sidebar"></aside>
+    <div class="admin-wrap">
+      <header class="admin-topbar" id="admin-topbar"></header>
+      <main class="admin-main">
+        <h1 class="admin-page-title">首页概览</h1>
+        <div class="dash-top-links">
+          <a class="dash-link-card" href="../prototype/index.html" target="_blank" rel="noopener">
+            <div class="dash-link-icon">3D</div>
+            <div class="dash-link-body">
+              <div class="dash-link-title">三维互动系统</div>
+              <div class="dash-link-desc">游客端交互展示入口（平移 / 旋转 / 缩放 / 全景漫游等）</div>
+            </div>
+            <div class="dash-link-go">打开</div>
+          </a>
+          <a class="dash-link-card dash-link-card--alt" href="#" target="_blank" rel="noopener" id="dash-museum-link">
+            <div class="dash-link-icon">馆</div>
+            <div class="dash-link-body">
+              <div class="dash-link-title">博物馆展示系统</div>
+              <div class="dash-link-desc">既有展示系统入口（后续替换为真实链接）</div>
+            </div>
+            <div class="dash-link-go">打开</div>
+          </a>
+        </div>
+
+        <div class="admin-card">
+          <h2>快捷入口</h2>
+          <div class="admin-toolbar dash-quick">
+            <a class="btn btn-primary dash-shell-nav" href="cliff.html" data-sh="cliff.html" data-sid="cliff">崖墓管理</a>
+            <a class="btn btn-primary dash-shell-nav" href="coffin.html" data-sh="coffin.html" data-sid="coffin">石棺管理</a>
+            <a class="btn btn-primary dash-shell-nav" href="museum-panorama.html" data-sh="museum-panorama.html" data-sid="museum-pano">博物馆全景管理</a>
+            <a class="btn btn-primary dash-shell-nav" href="resource.html" data-sh="resource.html" data-sid="resource">资源管理</a>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <section class="admin-card dash-panel dash-panel--notice" aria-label="公告栏">
+            <div class="dash-panel-head">
+              <h2 style="margin:0">公告栏</h2>
+            </div>
+            <div id="dash-notices" class="dash-notices"></div>
+          </section>
+
+          <section class="admin-card dash-panel" aria-label="数据统计">
+            <div class="dash-panel-head">
+              <h2 style="margin:0">数据统计</h2>
+              <span class="admin-muted" id="dash-stat-meta"></span>
+            </div>
+            <div class="dash-stats" id="dash-stats"></div>
+            <div class="dash-charts">
+              <div class="dash-chart-card">
+                <div class="dash-chart-head">
+                  <div class="dash-chart-title">资源类型分布</div>
+                  <div class="dash-chart-sub" id="dash-res-total">—</div>
+                </div>
+                <div class="dash-mini-bars" id="dash-res-bars" aria-label="资源类型分布条形图"></div>
+              </div>
+              <div class="dash-chart-card">
+                <div class="dash-chart-head">
+                  <div class="dash-chart-title">近 7 天登录概览</div>
+                  <div class="dash-chart-sub" id="dash-login-sum">—</div>
+                </div>
+                <svg class="dash-spark" id="dash-login-spark" viewBox="0 0 220 56" aria-label="近7天登录趋势">
+                  <path id="dash-login-spark-line" d="" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" />
+                  <path id="dash-login-spark-fill" d="" fill="rgba(37, 99, 235, 0.12)"></path>
+                </svg>
+              </div>
+            </div>
+          </section>
+
+          <section class="admin-card dash-panel" aria-label="运行与用户">
+            <div class="dash-panel-head">
+              <h2 style="margin:0">日志与在线</h2>
+              <div class="dash-panel-actions">
+                <a class="btn btn-ghost dash-shell-nav" href="log-login.html" data-sh="log-login.html" data-sid="log-in">登录日志</a>
+                <a class="btn btn-ghost dash-shell-nav" href="log-operation.html" data-sh="log-operation.html" data-sid="log-op">操作日志</a>
+              </div>
+            </div>
+            <div class="dash-two-cols">
+              <div>
+                <div class="dash-subtitle">最新操作</div>
+                <ul class="dash-list dash-list--rich" id="dash-op-list"></ul>
+              </div>
+              <div>
+                <div class="dash-subtitle">在线用户</div>
+                <ul class="dash-list dash-list--rich" id="dash-online-list"></ul>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="assets/sys-config-store.js"></script>
+  <script src="assets/log-monitor-store.js"></script>
+  <script src="assets/org-store.js"></script>
+  <script src="assets/admin-layout.js"></script>
+  <script src="assets/dashboard-page.js"></script>
+  <script>
+    if (!document.documentElement.classList.contains("embed-mode")) {
+      AdminLayout.init({ active: "dashboard" });
+    } else {
+      AdminLayout.initTabs(document);
+      document.querySelectorAll(".dash-shell-nav").forEach(function (a) {
+        a.addEventListener("click", function (e) {
+          if (window.parent !== window && parent.AdminLayout && parent.AdminLayout.shellNavigate) {
+            e.preventDefault();
+            parent.AdminLayout.shellNavigate(a.getAttribute("data-sh"), a.getAttribute("data-sid"));
+          }
+        });
+      });
+    }
+  </script>
+</body>
+</html>

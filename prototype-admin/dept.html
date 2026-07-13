@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>部门管理 — 管理后台</title>
+  <link rel="stylesheet" href="assets/admin.css" />
+  <link rel="stylesheet" href="assets/org-admin.css" />
+  <link rel="stylesheet" href="assets/embed.css" />
+  <script src="assets/embed.js"></script>
+</head>
+<body class="admin-body">
+  <div class="admin-root">
+    <aside class="admin-sidebar" id="admin-sidebar"></aside>
+    <div class="admin-wrap">
+      <header class="admin-topbar" id="admin-topbar"></header>
+      <main class="admin-main">
+        <h1 class="admin-page-title">部门管理</h1>
+        <p class="admin-page-desc">多级部门树，用于组织架构与用户归属；有下级或仍有用户归属时不可删除。</p>
+        <div class="admin-card">
+          <div class="admin-toolbar">
+            <button type="button" class="btn btn-primary" id="dept-btn-add">新增部门</button>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>部门名称</th>
+                  <th>上级</th>
+                  <th>排序</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="dept-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div class="admin-modal-backdrop" id="dept-modal" hidden aria-hidden="true">
+    <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="dept-modal-title">
+      <div class="admin-modal-header">
+        <h2 class="admin-modal-title" id="dept-modal-title">新增部门</h2>
+        <button type="button" class="admin-modal-close" data-org-modal-close aria-label="关闭">&times;</button>
+      </div>
+      <div class="admin-modal-body">
+        <div class="admin-form-row">
+          <label for="dept-f-name">部门名称</label>
+          <input type="text" class="admin-input" id="dept-f-name" />
+        </div>
+        <div class="admin-form-row">
+          <label for="dept-f-parent">上级部门</label>
+          <select class="admin-select" id="dept-f-parent"></select>
+        </div>
+        <div class="admin-form-row">
+          <label for="dept-f-sort">排序</label>
+          <input type="number" class="admin-input" id="dept-f-sort" style="max-width:120px" />
+        </div>
+      </div>
+      <div class="admin-modal-footer">
+        <button type="button" class="btn btn-ghost" data-org-modal-close>取消</button>
+        <button type="button" class="btn btn-primary" id="dept-btn-save">保存</button>
+      </div>
+    </div>
+  </div>
+  <div class="admin-toast" id="dept-toast" aria-live="polite"></div>
+
+  <script src="assets/admin-layout.js"></script>
+  <script src="assets/org-store.js"></script>
+  <script src="assets/org-common.js"></script>
+  <script src="assets/dept-page.js"></script>
+  <script>
+    if (!document.documentElement.classList.contains("embed-mode")) {
+      AdminLayout.init({ active: "dept" });
+    } else {
+      AdminLayout.initTabs(document);
+    }
+  </script>
+</body>
+</html>

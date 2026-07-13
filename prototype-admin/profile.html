@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>个人信息 — 管理后台</title>
+  <link rel="stylesheet" href="assets/admin.css" />
+  <link rel="stylesheet" href="assets/embed.css" />
+  <script src="assets/embed.js"></script>
+</head>
+<body class="admin-body">
+  <div class="admin-root">
+    <aside class="admin-sidebar" id="admin-sidebar"></aside>
+    <div class="admin-wrap">
+      <header class="admin-topbar" id="admin-topbar"></header>
+      <main class="admin-main">
+        <h1 class="admin-page-title">个人信息</h1>
+        <div class="profile-layout">
+          <section class="admin-card profile-side" aria-label="个人信息卡">
+            <div class="profile-avatar" aria-hidden="true">
+              <div class="profile-avatar-mark">文</div>
+            </div>
+            <h2 class="profile-side-title">个人信息</h2>
+            <dl class="profile-kv">
+              <div class="profile-kv-row">
+                <dt>登录账号</dt>
+                <dd id="pf-account">—</dd>
+              </div>
+              <div class="profile-kv-row">
+                <dt>用户昵称</dt>
+                <dd id="pf-nick">admin</dd>
+              </div>
+              <div class="profile-kv-row">
+                <dt>手机号码</dt>
+                <dd id="pf-phone-ro">—</dd>
+              </div>
+              <div class="profile-kv-row">
+                <dt>用户邮箱</dt>
+                <dd id="pf-email-ro">—</dd>
+              </div>
+              <div class="profile-kv-row">
+                <dt>所属部门</dt>
+                <dd id="pf-dept">—</dd>
+              </div>
+              <div class="profile-kv-row">
+                <dt>所属角色</dt>
+                <dd id="pf-roles">—</dd>
+              </div>
+              <div class="profile-kv-row">
+                <dt>创建时间</dt>
+                <dd id="pf-created">—</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="admin-card profile-main" aria-label="基本资料编辑">
+            <h2 style="margin-bottom: 12px">基本资料</h2>
+            <div class="admin-tabs" role="tablist" aria-label="个人资料标签页">
+              <button type="button" class="admin-tab is-active" id="tab-base" aria-controls="panel-base" aria-selected="true">基本资料</button>
+              <button type="button" class="admin-tab" id="tab-pwd" aria-controls="panel-pwd" aria-selected="false">修改密码</button>
+            </div>
+
+            <section id="panel-base" class="admin-tab-panel">
+              <div class="admin-form-row">
+                <label for="pf-display">用户昵称</label>
+                <input class="admin-input" type="text" id="pf-display" placeholder="请输入用户昵称" />
+              </div>
+              <div class="admin-form-row">
+                <label for="pf-phone">手机号码</label>
+                <input class="admin-input" type="tel" id="pf-phone" placeholder="请输入手机号码" />
+              </div>
+              <div class="admin-form-row">
+                <label for="pf-email">邮箱</label>
+                <input class="admin-input" type="email" id="pf-email" placeholder="请输入邮箱" />
+              </div>
+              <div class="profile-actions">
+                <button type="button" class="btn btn-primary" id="pf-save">保存</button>
+                <button type="button" class="btn btn-ghost" id="pf-cancel">关闭</button>
+              </div>
+            </section>
+
+            <section id="panel-pwd" class="admin-tab-panel" hidden>
+              <div class="admin-form-row">
+                <label for="pf-pwd-cur">当前密码</label>
+                <input class="admin-input" type="password" id="pf-pwd-cur" autocomplete="current-password" />
+              </div>
+              <div class="admin-form-row">
+                <label for="pf-pwd-new">新密码</label>
+                <input class="admin-input" type="password" id="pf-pwd-new" autocomplete="new-password" />
+              </div>
+              <div class="admin-form-row">
+                <label for="pf-pwd-new2">确认新密码</label>
+                <input class="admin-input" type="password" id="pf-pwd-new2" autocomplete="new-password" />
+              </div>
+              <div class="profile-actions">
+                <button type="button" class="btn btn-primary" id="pf-pwd-save">修改密码</button>
+              </div>
+            </section>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+  <div class="admin-toast" id="profile-toast" aria-live="polite"></div>
+
+  <script src="assets/sys-config-store.js"></script>
+  <script src="assets/admin-layout.js"></script>
+  <script src="assets/org-common.js"></script>
+  <script src="assets/profile-page.js"></script>
+  <script>
+    if (!document.documentElement.classList.contains("embed-mode")) {
+      AdminLayout.init({ active: "profile" });
+    } else {
+      AdminLayout.initTabs(document);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,510 @@
+/* 运维监控页：服务监控仪表盘（卡片 + 表格式） */
+
+.mon-page-desc {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  color: var(--admin-muted);
+  line-height: 1.5;
+}
+
+.mon-breadcrumb {
+  margin: 0 0 14px;
+  font-size: 0.84rem;
+  color: var(--admin-muted);
+}
+
+.mon-breadcrumb span {
+  margin: 0 6px;
+  color: #cbd5e1;
+}
+
+.mon-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.mon-toolbar-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.84rem;
+  color: var(--admin-muted);
+  cursor: pointer;
+}
+
+/* 缓存监控等页：指标卡栅格 */
+.mon-inline-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.mon-inline-tools label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.84rem;
+  color: var(--admin-muted);
+  cursor: pointer;
+}
+
+.mon-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.mon-metric-card {
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: #fff;
+}
+
+.mon-metric-label {
+  font-size: 0.8rem;
+  color: var(--admin-muted);
+  margin-bottom: 6px;
+}
+
+.mon-metric-value {
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* 独立白卡片，对齐常见「系统监控」后台 */
+.mon-dash-card {
+  background: #fff;
+  border: 1px solid var(--admin-border, #e2e8f0);
+  border-radius: 4px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.mon-dash-card-title {
+  margin: 0;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #303133;
+  border-bottom: 1px solid var(--admin-border, #ebeef5);
+  background: #fafafa;
+}
+
+.mon-dash-card-body {
+  padding: 0;
+}
+
+/* 属性 | 值 表 */
+.mon-attr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.mon-attr-table th,
+.mon-attr-table td {
+  padding: 10px 16px;
+  text-align: left;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+
+.mon-attr-table th {
+  width: 160px;
+  max-width: 40%;
+  color: #606266;
+  font-weight: 500;
+  background: #fafafa;
+}
+
+.mon-attr-table td {
+  color: #303133;
+}
+
+.mon-attr-table tr:last-child th,
+.mon-attr-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* 三列表：属性 | 内存 | JVM */
+.mon-attr-table--triple th:first-child {
+  width: 140px;
+}
+
+.mon-attr-table--triple th,
+.mon-attr-table--triple td {
+  text-align: left;
+}
+
+.mon-attr-table--triple td.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 键值网格（服务器 / JVM 信息） */
+.mon-kv-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 720px) {
+  .mon-kv-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mon-kv-cell {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  border-right: 1px solid #f0f0f0;
+  min-height: 44px;
+}
+
+.mon-kv-grid .mon-kv-cell:nth-child(2n) {
+  border-right: none;
+}
+
+.mon-kv-cell--full {
+  grid-column: 1 / -1;
+  border-right: none;
+}
+
+.mon-dash-card-body.mon-kv-grid .mon-kv-cell:last-child {
+  border-bottom: none;
+}
+
+.mon-kv-label {
+  flex: 0 0 auto;
+  min-width: 7.5em;
+  color: #606266;
+}
+
+.mon-kv-val {
+  flex: 1;
+  min-width: 0;
+  color: #303133;
+  word-break: break-all;
+}
+
+.mon-kv-val code {
+  font-size: 0.82rem;
+  background: #f5f7fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* 磁盘等数据表 */
+.mon-data-table-wrap {
+  overflow-x: auto;
+}
+
+.mon-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.mon-data-table thead th {
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  color: #606266;
+  background: #fafafa;
+  border-bottom: 1px solid var(--admin-border, #ebeef5);
+}
+
+.mon-data-table tbody td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #303133;
+}
+
+.mon-data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.mon-data-table .num {
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-footer-meta {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: var(--admin-muted);
+}
+
+/* 保留：进度条（若其它页使用） */
+.mon-bar-wrap {
+  margin-top: 10px;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.mon-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #3b82f6, #6366f1);
+  transition: width 0.35s ease;
+}
+
+.mon-bar-fill--warn {
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+}
+
+.mon-status-ok {
+  color: #059669;
+  font-weight: 500;
+}
+
+/* —— 缓存监控（Redis）仪表盘 —— */
+
+.redis-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.redis-toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.84rem;
+  color: var(--admin-muted);
+  cursor: pointer;
+}
+
+.redis-basic-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 1100px) {
+  .redis-basic-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .redis-basic-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.redis-basic-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-right: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f0;
+  min-height: 72px;
+}
+
+.redis-basic-grid .redis-basic-cell:nth-child(4n) {
+  border-right: none;
+}
+
+@media (max-width: 1100px) {
+  .redis-basic-grid .redis-basic-cell:nth-child(2n) {
+    border-right: none;
+  }
+  .redis-basic-grid .redis-basic-cell:nth-child(4n) {
+    border-right: 1px solid #f0f0f0;
+  }
+}
+
+@media (max-width: 520px) {
+  .redis-basic-grid .redis-basic-cell {
+    border-right: none;
+  }
+}
+
+.redis-basic-label {
+  color: #606266;
+  font-size: 0.82rem;
+}
+
+.redis-basic-val {
+  color: #303133;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.redis-charts-row {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .redis-charts-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.redis-cmd-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 24px 32px;
+  padding: 20px 16px;
+  min-height: 280px;
+}
+
+.redis-donut-stack {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  flex-shrink: 0;
+}
+
+.redis-donut {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  transition: background 0.35s ease;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.redis-donut-hole {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 46%;
+  height: 46%;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #ebeef5;
+}
+
+.redis-cmd-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.8rem;
+  color: #606266;
+  columns: 2;
+  column-gap: 20px;
+}
+
+@media (max-width: 520px) {
+  .redis-cmd-legend {
+    columns: 1;
+  }
+}
+
+.redis-cmd-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  break-inside: avoid;
+}
+
+.redis-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.redis-mem-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 20px 16px 16px;
+  min-height: 280px;
+}
+
+.redis-gauge-chart {
+  position: relative;
+  width: 100%;
+  max-width: 272px;
+}
+
+.redis-gauge-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+.redis-gauge-track {
+  opacity: 1;
+}
+
+.redis-gauge-arc {
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.06));
+}
+
+.redis-gauge-needle-line {
+  stroke: #1f1f1f;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+}
+
+.redis-gauge-hub {
+  fill: #1f1f1f;
+}
+
+.redis-gauge-center {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  z-index: 1;
+  width: 90%;
+}
+
+.redis-gauge-title {
+  font-size: 0.75rem;
+  color: #8c8c8c;
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+
+.redis-gauge-num {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #262626;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.redis-gauge-ticks {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 248px;
+  margin-top: 4px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  font-size: 0.7rem;
+  color: #bfbfbf;
+  font-variant-numeric: tabular-nums;
+}

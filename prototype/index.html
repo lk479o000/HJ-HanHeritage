@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="format-detection" content="telephone=no" />
+  <title>汉墓秘境，汉韵仙踪</title>
+  <link rel="stylesheet" href="assets/tablet.css" />
+  <link rel="stylesheet" href="assets/home-map.css" />
+</head>
+<body class="home-map">
+  <div class="map-home">
+    <header class="map-home-header">
+      <h1>汉墓秘境，汉韵仙踪</h1>
+    </header>
+
+    <div class="map-home-view">
+      <div class="map-stage" role="application" aria-label="合江县汉代崖墓分布图，含十三处崖墓群标点与功能入口">
+        <img
+          class="map-home-img"
+          src="assets/hejiang-han-cliff-distribution.png"
+          alt="合江县汉代崖墓分布图：县界、河流、公路与十三处崖墓群位置示意"
+          width="1200"
+          height="900"
+          decoding="async"
+        />
+        <div class="map-markers" id="map-markers"></div>
+        <nav class="map-home-actions map-home-actions--dock" aria-label="核心功能入口">
+          <a class="map-home-btn map-home-btn--pano" href="panorama.html">全景漫游</a>
+          <a class="map-home-btn map-home-btn--coffin" href="coffin-map.html">石棺解读</a>
+          <a class="map-home-btn map-home-btn--ear" href="cliff-detail.html?cliff=5">大耳朵崖墓群</a>
+        </nav>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="assets/cliff-data.js"></script>
+  <script src="assets/home-map.js"></script>
+</body>
+</html>

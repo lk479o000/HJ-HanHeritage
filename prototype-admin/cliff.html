@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>崖墓管理 — 管理后台</title>
+  <link rel="stylesheet" href="assets/admin.css" />
+  <link rel="stylesheet" href="assets/embed.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css" crossorigin="anonymous" />
+  <script src="assets/embed.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js" crossorigin="anonymous"></script>
+</head>
+<body class="admin-body">
+  <div class="admin-root">
+    <aside class="admin-sidebar" id="admin-sidebar"></aside>
+    <div class="admin-wrap">
+      <header class="admin-topbar" id="admin-topbar"></header>
+      <main class="admin-main">
+        <h1 class="admin-page-title">崖墓管理</h1>
+
+        <div class="admin-card admin-card--cliff" data-admin-tabs>
+          <div class="admin-tabs">
+            <button type="button" class="admin-tab is-active" data-tab="t1">展示与查询</button>
+            <button type="button" class="admin-tab" data-tab="t2">大耳朵 · 墓口点位</button>
+          </div>
+
+          <div id="t1" class="admin-tab-panel">
+            <div class="admin-toolbar admin-toolbar--cliff">
+              <div class="admin-toolbar-group admin-toolbar-group--filters">
+                <select class="admin-select admin-select--compact" title="状态" id="cliff-filter-status">
+                  <option value="">全部状态</option>
+                  <option value="enabled">启用</option>
+                  <option value="disabled">禁用</option>
+                </select>
+                <select class="admin-select admin-select--town" title="乡镇（街道）" id="cliff-filter-town">
+                  <option value="">全部乡镇（街道）</option>
+                  <option>白沙镇</option>
+                  <option>望龙镇</option>
+                  <option>白米镇</option>
+                  <option>临港街道</option>
+                  <option>符阳街道</option>
+                  <option>荔江镇</option>
+                  <option>神臂城镇</option>
+                  <option>大桥镇</option>
+                  <option>真龙镇</option>
+                  <option>先市镇</option>
+                  <option>法王寺镇</option>
+                  <option>尧坝镇</option>
+                  <option>九支镇</option>
+                  <option>车辋镇</option>
+                  <option>凤鸣镇</option>
+                  <option>甘雨镇</option>
+                  <option>榕山镇</option>
+                  <option>白鹿镇</option>
+                  <option>石龙镇</option>
+                  <option>先锋镇</option>
+                  <option>福宝镇</option>
+                  <option>先滩镇</option>
+                </select>
+                <input
+                  class="admin-input admin-input--search"
+                  type="search"
+                  placeholder="按名称 / 地址 / 编号"
+                  id="cliff-filter-code"
+                />
+                <button type="button" class="btn btn-primary" id="btn-cliff-search">查询</button>
+              </div>
+              <div class="admin-toolbar-group admin-toolbar-group--actions">
+                <button type="button" class="btn" id="btn-cliff-add">新增崖墓群</button>
+                <button type="button" class="btn" id="btn-cliff-export">导出</button>
+              </div>
+            </div>
+
+            <div class="admin-view-panel">
+              <div class="admin-map-frame admin-map-frame--cliff admin-media-expand-shell" id="cliff-map-frame">
+                <img
+                  id="cliff-map-img"
+                  src="assets/hejiang-han-cliff-distribution.png"
+                  alt="合江县汉代崖墓分布图"
+                  loading="lazy"
+                />
+                <button type="button" class="admin-media-expand-fab" aria-label="放大查看分布图">放大</button>
+                <div
+                  id="cliff-admin-map-markers"
+                  class="cliff-admin-map-markers"
+                  aria-label="崖墓群标点"
+                  role="group"
+                ></div>
+              </div>
+              <p class="admin-map-caption">
+                点击图上标点打开崖墓信息；「编辑」可维护字段与上传全景/三维模型。全库共 <strong>13</strong> 处崖墓群（示意标点，正式坐标由后台维护）。
+              </p>
+
+              <section class="cliff-list-panel" id="cliff-list-panel" aria-label="崖墓群台账列表">
+                <div class="cliff-list-panel-head">
+                  <span class="cliff-list-panel-title">崖墓群台账列表</span>
+                  <button
+                    type="button"
+                    class="btn btn-ghost cliff-list-toggle"
+                    id="btn-cliff-list-toggle"
+                    aria-expanded="true"
+                    aria-controls="cliff-list-collapse"
+                  >
+                    <span class="cliff-list-toggle-text">收起列表</span>
+                  </button>
+                </div>
+                <div class="cliff-list-panel-body" id="cliff-list-collapse">
+                  <div class="admin-table-wrap admin-table-wrap--cliff">
+                    <table class="admin-table admin-table--cliff">
+                      <thead>
+                        <tr>
+                          <th>名称</th>
+                          <th>地址</th>
+                          <th>坐标</th>
+                          <th>面积</th>
+                          <th>级别</th>
+                          <th>文物保护单位名称</th>
+                          <th>年代</th>
+                          <th>类别</th>
+                          <th>文物构成</th>
+                          <th>简介</th>
+                          <th>状态</th>
+                          <th>操作</th>
+                        </tr>
+                      </thead>
+                      <tbody id="cliff-list-body"></tbody>
+                    </table>
+                  </div>
+                  <p class="admin-page-desc cliff-list-panel-desc">
+                    默认 13 条为初始台账；「新增」会追加到内存列表。导出为当前筛选结果 CSV。
+                  </p>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div id="t2" class="admin-tab-panel" hidden>
+            <p class="admin-hint">
+              针对<strong>大耳朵崖墓群</strong>：在无人机实景三维模型上标注墓口位置。最多 <strong>6</strong> 个墓口；删除后可再新增。
+            </p>
+            <div class="admin-toolbar">
+              <button type="button" class="btn btn-primary" id="btn-tomb-pick">在模型上拾取坐标</button>
+              <button type="button" class="btn" id="btn-tomb-add">新增墓口</button>
+            </div>
+            <div class="admin-3d-placeholder" style="margin-bottom: 16px">
+              <span>三维预览区（嵌入查看器后在此拾取墓口）</span>
+              <span class="hint">6 个标记将叠加在「大耳朵」实景模型表面</span>
+            </div>
+            <div class="cliff-tomb-3d-wrap admin-media-expand-shell" style="margin-bottom: 14px">
+              <model-viewer
+                id="tomb-model-viewer"
+                class="cliff-model-viewer"
+                camera-controls
+                touch-action="pan-y"
+                interaction-prompt="none"
+                shadow-intensity="1"
+                environment-image="neutral"
+                alt="大耳朵崖墓群无人机实景三维"
+              ></model-viewer>
+              <button type="button" class="admin-media-expand-fab" aria-label="放大查看实景三维模型">放大</button>
+              <div class="cliff-tomb-3d-tip" id="tomb-3d-tip"></div>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>序号</th>
+                    <th>墓口名称</th>
+                    <th>模型内坐标 / 节点</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="tomb-opening-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div class="admin-modal-backdrop" id="cliff-modal" hidden aria-hidden="true">
+    <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="cliff-modal-title">
+      <div class="admin-modal-header">
+        <h2 class="admin-modal-title" id="cliff-modal-title"></h2>
+        <button type="button" class="admin-modal-close" aria-label="关闭">&times;</button>
+      </div>
+      <div class="admin-modal-body" id="cliff-modal-body"></div>
+      <div class="admin-modal-footer" id="cliff-modal-footer"></div>
+    </div>
+  </div>
+  <div class="admin-toast" id="cliff-toast" role="status"></div>
+
+  <!-- model-viewer：国内环境 Google CDN 常失败，改用 jsDelivr -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js" crossorigin="anonymous"></script>
+  <script src="assets/admin-layout.js"></script>
+  <script src="assets/admin-media-expand.js"></script>
+  <script src="assets/cliff-page.js"></script>
+  <script>
+    if (!document.documentElement.classList.contains("embed-mode")) {
+      AdminLayout.init({ active: "cliff" });
+    } else {
+      AdminLayout.initTabs(document);
+    }
+  </script>
+</body>
+</html>

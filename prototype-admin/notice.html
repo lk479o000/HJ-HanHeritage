@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>通知公告 — 管理后台</title>
+  <link rel="stylesheet" href="assets/admin.css" />
+  <link rel="stylesheet" href="assets/embed.css" />
+  <script src="assets/embed.js"></script>
+</head>
+<body class="admin-body">
+  <div class="admin-root">
+    <aside class="admin-sidebar" id="admin-sidebar"></aside>
+    <div class="admin-wrap">
+      <header class="admin-topbar" id="admin-topbar"></header>
+      <main class="admin-main">
+        <h1 class="admin-page-title">通知公告</h1>
+        <p class="admin-form-hint">管理员在此发布或维护公告；<strong>已发布</strong>的公告会在登录页展示，供所有用户登录前查看（原型数据存 localStorage）。</p>
+        <div class="admin-card">
+          <div class="admin-toolbar">
+            <button type="button" class="btn btn-primary" id="notice-btn-add">发布公告</button>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>标题</th>
+                  <th>状态</th>
+                  <th>发布时间</th>
+                  <th>可见范围</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="notice-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div class="admin-modal-backdrop" id="notice-modal" hidden aria-hidden="true">
+    <div class="admin-modal admin-modal--lg" role="dialog" aria-modal="true" aria-labelledby="notice-modal-title">
+      <div class="admin-modal-header">
+        <h2 class="admin-modal-title" id="notice-modal-title">发布公告</h2>
+        <button type="button" class="admin-modal-close" data-org-modal-close aria-label="关闭">&times;</button>
+      </div>
+      <div class="admin-modal-body">
+        <div class="admin-form-row">
+          <label for="notice-f-title">标题</label>
+          <input type="text" class="admin-input" id="notice-f-title" />
+        </div>
+        <div class="admin-form-row">
+          <label>正文</label>
+          <div class="notice-editor-wrap">
+            <div class="notice-editor-toolbar" role="toolbar" aria-label="公告编辑工具栏">
+              <button type="button" class="btn btn-ghost notice-ed-btn" data-ed="bold">加粗</button>
+              <button type="button" class="btn btn-ghost notice-ed-btn" data-ed="italic">斜体</button>
+              <button type="button" class="btn btn-ghost notice-ed-btn" data-ed="ul">无序列表</button>
+              <button type="button" class="btn btn-ghost notice-ed-btn" data-ed="ol">有序列表</button>
+              <button type="button" class="btn btn-ghost notice-ed-btn" id="notice-insert-img">插入图片</button>
+              <input type="file" id="notice-img-file" accept="image/*" hidden />
+            </div>
+            <div
+              id="notice-f-editor"
+              class="notice-editor"
+              contenteditable="true"
+              role="textbox"
+              aria-multiline="true"
+              aria-label="公告正文"
+            ></div>
+            <p class="admin-form-hint" style="margin: 8px 0 0">
+              支持图文混排；图片将以内嵌方式保存。
+            </p>
+          </div>
+        </div>
+        <div class="admin-form-row">
+          <label>可见范围</label>
+          <div class="notice-scope">
+            <div class="notice-scope-row">
+              <label class="notice-scope-opt"><input type="radio" name="notice-scope" value="all" checked /> 全部用户</label>
+              <label class="notice-scope-opt"><input type="radio" name="notice-scope" value="dept" /> 指定部门</label>
+              <label class="notice-scope-opt"><input type="radio" name="notice-scope" value="role" /> 指定角色</label>
+            </div>
+            <div class="notice-scope-pick" id="notice-scope-dept" hidden>
+              <div class="notice-scope-pick-title">选择部门（可多选）</div>
+              <div id="notice-dept-wrap" class="notice-scope-pills"></div>
+            </div>
+            <div class="notice-scope-pick" id="notice-scope-role" hidden>
+              <div class="notice-scope-pick-title">选择角色（可多选）</div>
+              <div id="notice-role-wrap" class="notice-scope-pills"></div>
+            </div>
+          </div>
+        </div>
+        <div class="admin-form-row">
+          <label><input type="checkbox" id="notice-f-draft" /> 保存为草稿（不显示在登录页）</label>
+        </div>
+      </div>
+      <div class="admin-modal-footer">
+        <button type="button" class="btn btn-ghost" data-org-modal-close>取消</button>
+        <button type="button" class="btn btn-primary" id="notice-modal-save">保存</button>
+      </div>
+    </div>
+  </div>
+  <div class="admin-toast" id="notice-toast" aria-live="polite"></div>
+
+  <script src="assets/sys-config-store.js"></script>
+  <script src="assets/admin-layout.js"></script>
+  <script src="assets/org-store.js"></script>
+  <script src="assets/org-common.js"></script>
+  <script src="assets/notice-page.js"></script>
+  <script>
+    if (!document.documentElement.classList.contains("embed-mode")) {
+      AdminLayout.init({ active: "notice" });
+    } else {
+      AdminLayout.initTabs(document);
+    }
+  </script>
+</body>
+</html>

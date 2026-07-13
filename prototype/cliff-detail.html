@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>崖墓群专属界面 — 游客端</title>
+  <link rel="stylesheet" href="assets/tablet.css" />
+  <link rel="stylesheet" href="assets/guofeng-pages.css" />
+  <script src="assets/cliff-data.js"></script>
+</head>
+<body class="page-guofeng">
+  <div class="page-shell">
+    <header class="top-bar" data-ui-chrome>
+      <a class="btn-touch ghost" href="index.html">← 首页</a>
+      <h1 id="cliff-page-title">崖墓群专属界面</h1>
+    </header>
+
+    <div class="layout-split">
+      <aside class="panel" data-ui-chrome>
+        <h2 id="cliff-intro-title">崖墓群简介</h2>
+        <figure class="gf-intro-figure">
+          <img src="https://pannellum.org/images/alma.jpg" alt="崖墓群简介示意图" loading="lazy" decoding="async" />
+          <figcaption class="muted" id="cliff-intro-caption">图：崖墓群实景图</figcaption>
+        </figure>
+        <p class="muted" id="cliff-intro-body" style="margin: 10px 0 0; font-size: 0.92rem"></p>
+        <h3>模型切换</h3>
+        <div class="btn-row gf-model-switch" style="margin-top: 8px">
+          <button type="button" class="btn-touch primary is-active" data-model="tomb">崖墓群模型</button>
+          <button type="button" class="btn-touch" data-model="image">图片查看</button>
+          <a class="btn-touch" href="coffin.html?coffin=1&from=ear" id="btn-coffin-1">石棺 1</a>
+          <a class="btn-touch" href="coffin.html?coffin=2&from=ear" id="btn-coffin-2">石棺 2</a>
+        </div>
+        <p id="cliff-scene-meta" class="muted" style="margin: 10px 0 0; font-size: 0.84rem"></p>
+      </aside>
+
+      <section style="display: flex; flex-direction: column; min-height: 0">
+        <model-viewer
+          id="cliff-model-viewer"
+          class="proto-model-viewer"
+          camera-controls
+          touch-action="pan-y"
+          interaction-prompt="none"
+          shadow-intensity="1"
+          environment-image="neutral"
+          alt="崖墓群三维模型"
+          style="flex: 1; min-height: 380px"
+        ></model-viewer>
+        <div id="cliff-image-stage" class="coffin-stage-media" style="display:none; min-height:380px">
+          <figure class="coffin-media-stage-card">
+            <img id="cliff-image" alt="崖墓群图片" />
+            <figcaption class="muted" id="cliff-image-cap"></figcaption>
+          </figure>
+        </div>
+
+        <div class="toolbar-dock" data-ui-chrome>
+          <div class="group" id="cliff-group-viewpoint" style="flex-direction: column; align-items: stretch">
+            <span class="label">固定视点（仅崖墓群模型）</span>
+            <div class="btn-row">
+              <button type="button" class="btn-touch primary" id="btn-cliff-near">崖墓近景</button>
+              <button type="button" class="btn-touch primary" id="btn-cliff-far">崖墓全景</button>
+            </div>
+          </div>
+          <div class="group" id="cliff-group-3d" style="flex-direction: column; align-items: stretch">
+            <span class="label">通用三维交互</span>
+            <div class="btn-row">
+              <button type="button" class="btn-touch" id="btn-cliff-zoom-out">缩小 −</button>
+              <button type="button" class="btn-touch" id="btn-cliff-zoom-in">放大 +</button>
+              <button type="button" class="btn-touch" id="btn-cliff-auto-rotate">自动旋转</button>
+              <button type="button" class="btn-touch" id="btn-cliff-reset">复位</button>
+            </div>
+          </div>
+          <div class="group" style="flex-direction: column; align-items: stretch">
+            <span class="label">显示与背景</span>
+            <div class="btn-row color-strip">
+              <button type="button" class="btn-touch" id="btn-cliff-fullscreen">全屏视口</button>
+              <button type="button" class="btn-touch" id="btn-cliff-img-prev">上一张</button>
+              <button type="button" class="btn-touch" id="btn-cliff-img-next">下一张</button>
+              <button type="button" class="btn-touch" id="btn-cliff-img-zoom">图片放大</button>
+              <label class="muted" for="cliff-bg-color" style="display: flex; align-items: center; gap: 8px">
+                背景取色
+                <input type="color" id="cliff-bg-color" value="#d9e5e2" aria-label="崖墓群背景色取色器" />
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="proto-foot" data-ui-chrome></footer>
+  </div>
+
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js" crossorigin="anonymous"></script>
+  <script>
+    (function () {
+      var rows = window.CLIFF_MARKERS_13 || [];
+      var q = (location.search.match(/[?&]cliff=(\d+)/) || [])[1];
+      var id = parseInt(q, 10);
+      if (isNaN(id) || id < 1 || id > 13) id = 5;
+      var row = rows.filter(function (x) { return x.id === id; })[0] || { id: id, code: "CM-" + String(id).padStart(2, "0"), name: "崖墓群 " + String(id).padStart(2, "0") };
+
+      var tombModel = "https://modelviewer.dev/shared-assets/models/Astronaut.glb";
+      var FALLBACK_IMAGES = [
+        "assets/pano-museum-indoor-hall.png",
+        "assets/pano-museum-indoor-coffin.png",
+        "assets/hejiang-han-cliff-distribution.png"
+      ];
+
+      var MODELS = {
+        tomb: { name: row.name, src: tombModel, near: "22deg 78deg 12m", far: "10deg 35deg 34m", target: "0m 0m 0m", fov: "30deg", note: "崖墓群实景三维模型" }
+      };
+
+      var state = { active: "tomb", autoRotate: false, imageIndex: 0, imageZoom: false };
+      var hasRealModel = id === 5;
+      var photoSet = [
+        { src: FALLBACK_IMAGES[0], note: row.name + " · 现场照片 1" },
+        { src: FALLBACK_IMAGES[1], note: row.name + " · 现场照片 2" },
+        { src: FALLBACK_IMAGES[2], note: row.name + " · 区位与分布图" }
+      ];
+      var mv = document.getElementById("cliff-model-viewer");
+      var imageStage = document.getElementById("cliff-image-stage");
+      var imageEl = document.getElementById("cliff-image");
+      var imageCap = document.getElementById("cliff-image-cap");
+      var meta = document.getElementById("cliff-scene-meta");
+      var switchBtns = document.querySelectorAll(".gf-model-switch [data-model]");
+      var switchBox = document.querySelector(".gf-model-switch");
+      var switchHead = switchBox ? switchBox.previousElementSibling : null;
+      var groupViewpoint = document.getElementById("cliff-group-viewpoint");
+      var group3d = document.getElementById("cliff-group-3d");
+      var btnNear = document.getElementById("btn-cliff-near");
+      var btnFar = document.getElementById("btn-cliff-far");
+      var btnZoomIn = document.getElementById("btn-cliff-zoom-in");
+      var btnZoomOut = document.getElementById("btn-cliff-zoom-out");
+      var btnAuto = document.getElementById("btn-cliff-auto-rotate");
+      var btnReset = document.getElementById("btn-cliff-reset");
+      var btnFs = document.getElementById("btn-cliff-fullscreen");
+      var btnImgPrev = document.getElementById("btn-cliff-img-prev");
+      var btnImgNext = document.getElementById("btn-cliff-img-next");
+      var btnImgZoom = document.getElementById("btn-cliff-img-zoom");
+      var bgColor = document.getElementById("cliff-bg-color");
+
+      document.title = row.name + " — 专属界面";
+      document.getElementById("cliff-page-title").textContent = row.code + " " + row.name;
+      document.getElementById("cliff-intro-title").textContent = row.name + "简介";
+      document.getElementById("cliff-intro-caption").textContent = "图：" + row.name + "实景图";
+      document.getElementById("cliff-intro-body").innerHTML =
+        row.name +
+        "专属页面。支持图片查看。" +
+        (id === 5 ? " 该崖墓群出土石棺可从下方按钮进入石棺解读界面查看。" : " 该崖墓群暂无关联石棺入口。");
+
+      if (id !== 5) {
+        var coffinBtn1 = document.getElementById("btn-coffin-1");
+        var coffinBtn2 = document.getElementById("btn-coffin-2");
+        if (coffinBtn1) coffinBtn1.remove();
+        if (coffinBtn2) coffinBtn2.remove();
+        if (switchHead && switchHead.tagName === "H3") switchHead.style.display = "none";
+        if (switchBox) switchBox.style.display = "none";
+        if (groupViewpoint) groupViewpoint.remove();
+        if (group3d) group3d.remove();
+      }
+
+      function setMeta(msg) {
+        if (meta) meta.textContent = msg;
+      }
+      function getRadius(orbit) {
+        var m = String(orbit || "").match(/([\d.]+)m$/);
+        return m ? parseFloat(m[1]) : 10;
+      }
+      function setOrbitRadius(r) {
+        var cur = mv.getAttribute("camera-orbit") || "0deg 75deg 10m";
+        var parts = cur.split(" ");
+        parts[2] = Math.max(1, r).toFixed(2) + "m";
+        mv.setAttribute("camera-orbit", parts.join(" "));
+      }
+      function updateViewerMode() {
+        var inModel = state.active === "tomb";
+        if (mv) mv.style.display = inModel ? "block" : "none";
+        if (imageStage) imageStage.style.display = inModel ? "none" : "block";
+        if (groupViewpoint) groupViewpoint.hidden = !inModel;
+        if (group3d) group3d.hidden = !inModel;
+        if (btnImgPrev) btnImgPrev.hidden = inModel;
+        if (btnImgNext) btnImgNext.hidden = inModel;
+        if (btnImgZoom) btnImgZoom.hidden = inModel;
+      }
+      function showImage(idx) {
+        if (!photoSet.length || !imageEl) return;
+        state.imageIndex = (idx + photoSet.length) % photoSet.length;
+        var it = photoSet[state.imageIndex];
+        imageEl.src = it.src;
+        imageEl.style.transform = state.imageZoom ? "scale(1.6)" : "scale(1)";
+        imageEl.style.transition = "transform .2s ease";
+        if (imageCap) imageCap.textContent = it.note + "（" + (state.imageIndex + 1) + "/" + photoSet.length + "）";
+      }
+      function applyScene(key) {
+        if (key === "image") {
+          state.active = "image";
+          updateViewerMode();
+          showImage(state.imageIndex);
+          switchBtns.forEach(function (btn) {
+            var active = btn.getAttribute("data-model") === "image";
+            btn.classList.toggle("primary", active);
+            btn.classList.toggle("is-active", active);
+          });
+          setMeta("当前：图片查看 · 支持上一张/下一张和放大。");
+          return;
+        }
+        var cfg = MODELS[key];
+        if (!mv || !cfg) return;
+        state.active = "tomb";
+        updateViewerMode();
+        mv.setAttribute("src", cfg.src);
+        mv.setAttribute("camera-target", cfg.target);
+        mv.setAttribute("camera-orbit", cfg.far);
+        mv.setAttribute("field-of-view", cfg.fov);
+        mv.toggleAttribute("auto-rotate", state.autoRotate);
+        switchBtns.forEach(function (btn) {
+          var active = btn.getAttribute("data-model") === key;
+          btn.classList.toggle("primary", active);
+          btn.classList.toggle("is-active", active);
+        });
+        setMeta("当前：" + cfg.name + " · " + cfg.note + " · 可继续自由平移/旋转/缩放");
+      }
+      function jumpView(type) {
+        if (state.active !== "tomb") {
+          setMeta("固定视点仅作用于崖墓群模型。");
+          return;
+        }
+        var cfg = MODELS.tomb;
+        mv.setAttribute("camera-orbit", type === "near" ? cfg.near : cfg.far);
+        mv.setAttribute("camera-target", cfg.target);
+        mv.setAttribute("field-of-view", cfg.fov);
+        setMeta((type === "near" ? "已跳转：崖墓近景。" : "已跳转：崖墓全景。") + " 你可继续自由浏览。");
+      }
+
+      applyScene("tomb");
+      if (id === 5) {
+        switchBtns.forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var key = btn.getAttribute("data-model");
+            if (key === "tomb" && !hasRealModel) {
+              setMeta("当前崖墓暂无实景三维模型，请使用图片查看。");
+              return;
+            }
+            applyScene(key);
+          });
+        });
+      }
+      if (btnNear) btnNear.addEventListener("click", function () { jumpView("near"); });
+      if (btnFar) btnFar.addEventListener("click", function () { jumpView("far"); });
+      if (btnZoomIn) btnZoomIn.addEventListener("click", function () { setOrbitRadius(getRadius(mv.getAttribute("camera-orbit")) * 0.85); });
+      if (btnZoomOut) btnZoomOut.addEventListener("click", function () { setOrbitRadius(getRadius(mv.getAttribute("camera-orbit")) * 1.15); });
+      if (btnAuto) {
+        btnAuto.addEventListener("click", function () {
+          state.autoRotate = !state.autoRotate;
+          mv.toggleAttribute("auto-rotate", state.autoRotate);
+          btnAuto.textContent = state.autoRotate ? "停止旋转" : "自动旋转";
+        });
+      }
+      if (btnReset) btnReset.addEventListener("click", function () { applyScene(state.active); });
+      if (bgColor) bgColor.addEventListener("input", function () { mv.style.background = bgColor.value; });
+      if (btnImgPrev) btnImgPrev.addEventListener("click", function () { showImage(state.imageIndex - 1); });
+      if (btnImgNext) btnImgNext.addEventListener("click", function () { showImage(state.imageIndex + 1); });
+      if (btnImgZoom) {
+        btnImgZoom.addEventListener("click", function () {
+          state.imageZoom = !state.imageZoom;
+          btnImgZoom.textContent = state.imageZoom ? "恢复大小" : "图片放大";
+          showImage(state.imageIndex);
+        });
+      }
+      if (btnFs) {
+        btnFs.addEventListener("click", function () {
+          var stageEl = state.active === "tomb" ? mv : imageStage;
+          if (!document.fullscreenElement) stageEl.requestFullscreen().catch(function () {});
+          else document.exitFullscreen();
+        });
+      }
+      if (!hasRealModel) {
+        state.active = "image";
+        updateViewerMode();
+        showImage(state.imageIndex);
+        setMeta("当前为图片查看。");
+      } else {
+        updateViewerMode();
+      }
+    })();
+  </script>
+</body>
+</html>

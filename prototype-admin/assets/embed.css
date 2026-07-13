@@ -1,0 +1,24 @@
+/* 子页在 iframe 中：仅保留主内容区 */
+html.embed-mode .admin-sidebar,
+html.embed-mode #admin-sidebar {
+  display: none !important;
+}
+
+html.embed-mode .admin-topbar,
+html.embed-mode #admin-topbar {
+  display: none !important;
+}
+
+html.embed-mode .admin-root {
+  display: block;
+  min-height: 100%;
+}
+
+html.embed-mode .admin-wrap {
+  width: 100%;
+  min-height: 100dvh;
+}
+
+html.embed-mode .admin-main {
+  padding: 16px 20px 24px;
+}

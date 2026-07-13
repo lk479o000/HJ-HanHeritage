@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>全景漫游 · 合江博物馆</title>
+  <link rel="stylesheet" href="assets/tablet.css" />
+  <link rel="stylesheet" href="assets/guofeng-pages.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css" crossorigin="anonymous" />
+</head>
+<body class="page-guofeng">
+  <div class="page-shell">
+    <header class="top-bar">
+      <a class="btn-touch ghost" href="index.html">← 首页</a>
+      <h1>全景漫游 · 博物馆</h1>
+    </header>
+
+    <div class="panel">
+      <p class="muted" style="margin: 0 0 12px; font-size: 0.9rem">
+        合江县汉代画像石棺博物馆 — 集成<strong>空中、地面、室内、室外</strong>四类全景。支持鼠标/触屏<strong>拖拽环视（360°×180°）</strong>与<strong>缩放</strong>；下方缩略图切换不同点位（与后台「博物馆全景管理」绑定资源）。
+      </p>
+      <div class="tabs pano-museum-type-tabs" role="tablist" id="museum-type-tabs" aria-label="博物馆全景类型">
+        <button type="button" class="tab-btn" data-pano-type="air" aria-selected="true">空中</button>
+        <button type="button" class="tab-btn" data-pano-type="ground" aria-selected="false">地面</button>
+        <button type="button" class="tab-btn" data-pano-type="indoor" aria-selected="false">室内</button>
+        <button type="button" class="tab-btn" data-pano-type="outdoor" aria-selected="false">室外</button>
+      </div>
+      <div class="pano-museum-meta">
+        <h3 class="pano-museum-scene-title" id="museum-pano-scene-title">当前场景</h3>
+        <p class="muted pano-museum-hint" id="museum-pano-type-hint"></p>
+      </div>
+      <div id="museum-pano-host" class="proto-pano-host pano-museum-viewer" role="region" aria-label="博物馆全景主视口"></div>
+      <p class="muted" style="margin: 12px 0 4px; font-size: 0.82rem">场景切换（缩略图列表，点击切换全景点位）</p>
+      <div class="pano-scene-strip" id="museum-pano-scenes" role="list" aria-label="博物馆全景点位列表"></div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js" crossorigin="anonymous"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    (function () {
+      var DEMO_PANO = "https://pannellum.org/images/alma.jpg";
+
+      var TYPE_HINTS = {
+        air: "空中：无人机/高架等距柱状全景；拖拽环视 360°×180°，滚轮或右下角控件缩放。",
+        ground: "地面：馆区步行视点。",
+        indoor: "室内：展厅实景（参考示意图）；非标准等距图时使用局部视角包装，仅为交互示意。",
+        outdoor: "室外：馆外环境与庭院。"
+      };
+
+      var MUSEUM_SCENES = {
+        air: [
+          {
+            id: "m-air-1",
+            title: "博物馆院区·航拍全景 A",
+            pano: DEMO_PANO,
+            thumb: DEMO_PANO,
+            view: { pitch: 2, yaw: 0, hfov: 95 }
+          },
+          {
+            id: "m-air-2",
+            title: "博物馆院区·航拍全景 B",
+            pano: DEMO_PANO,
+            thumb: DEMO_PANO,
+            view: { pitch: -4, yaw: 135, hfov: 88 }
+          }
+        ],
+        ground: [
+          {
+            id: "m-gr-1",
+            title: "入口广场·地面点位 A",
+            pano: DEMO_PANO,
+            thumb: DEMO_PANO,
+            view: { pitch: 0, yaw: 40, hfov: 92 }
+          },
+          {
+            id: "m-gr-2",
+            title: "馆前步道·地面点位 B",
+            pano: DEMO_PANO,
+            thumb: DEMO_PANO,
+            view: { pitch: 3, yaw: -70, hfov: 100 }
+          }
+        ],
+        indoor: [
+          {
+            id: "m-in-1",
+            title: "展厅通道·石棺阵列",
+            pano: "assets/pano-museum-indoor-hall.png",
+            thumb: "assets/pano-museum-indoor-hall.png",
+            partial: { haov: 108, vaov: 68, minHfov: 36, maxHfov: 108, hfov: 86, pitch: 0, yaw: 0 }
+          },
+          {
+            id: "m-in-2",
+            title: "1 号石棺展柜近景",
+            pano: "assets/pano-museum-indoor-coffin.png",
+            thumb: "assets/pano-museum-indoor-coffin.png",
+            partial: { haov: 108, vaov: 68, minHfov: 36, maxHfov: 108, hfov: 86, pitch: 0, yaw: 0 }
+          }
+        ],
+        outdoor: [
+          {
+            id: "m-out-1",
+            title: "馆外立面·室外点位 A",
+            pano: DEMO_PANO,
+            thumb: DEMO_PANO,
+            view: { pitch: 1, yaw: 20, hfov: 96 }
+          },
+          {
+            id: "m-out-2",
+            title: "庭院与周边环境·室外点位 B",
+            pano: DEMO_PANO,
+            thumb: DEMO_PANO,
+            view: { pitch: -2, yaw: 200, hfov: 90 }
+          }
+        ]
+      };
+
+      var museumPanoViewer = null;
+      var museumState = { type: "air", index: 0 };
+
+      function destroyMuseumPano() {
+        if (museumPanoViewer) {
+          try {
+            museumPanoViewer.destroy();
+          } catch (e) {}
+          museumPanoViewer = null;
+        }
+        var h = document.getElementById("museum-pano-host");
+        if (h) h.innerHTML = "";
+      }
+
+      function buildMuseumViewerOptions(scene) {
+        var opt = {
+          type: "equirectangular",
+          panorama: scene.pano,
+          autoLoad: true,
+          showControls: true,
+          compass: true,
+          mouseZoom: true,
+          draggable: true,
+          hfov: 90,
+          minHfov: 40,
+          maxHfov: 120,
+          pitch: 0,
+          yaw: 0
+        };
+        if (scene.partial) {
+          Object.keys(scene.partial).forEach(function (k) {
+            opt[k] = scene.partial[k];
+          });
+        } else if (scene.view) {
+          if (scene.view.pitch != null) opt.pitch = scene.view.pitch;
+          if (scene.view.yaw != null) opt.yaw = scene.view.yaw;
+          if (scene.view.hfov != null) opt.hfov = scene.view.hfov;
+        }
+        return opt;
+      }
+
+      function renderMuseumSceneStrip() {
+        var strip = document.getElementById("museum-pano-scenes");
+        if (!strip) return;
+        var list = MUSEUM_SCENES[museumState.type] || [];
+        strip.innerHTML = "";
+        list.forEach(function (scene, idx) {
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "pano-scene-thumb";
+          btn.setAttribute("role", "listitem");
+          btn.setAttribute("aria-current", idx === museumState.index ? "true" : "false");
+          btn.innerHTML =
+            '<img src="' +
+            escapeAttr(scene.thumb) +
+            '" alt="" loading="lazy" decoding="async" />' +
+            "<span>" +
+            escapeHtml(scene.title) +
+            "</span>";
+          btn.addEventListener("click", function () {
+            loadMuseumScene(museumState.type, idx);
+          });
+          strip.appendChild(btn);
+        });
+      }
+
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function escapeAttr(s) {
+        return escapeHtml(s).replace(/'/g, "&#39;");
+      }
+
+      function syncMuseumTypeTabs() {
+        document.querySelectorAll("#museum-type-tabs .tab-btn[data-pano-type]").forEach(function (btn) {
+          var on = btn.getAttribute("data-pano-type") === museumState.type;
+          btn.setAttribute("aria-selected", on ? "true" : "false");
+        });
+      }
+
+      function loadMuseumScene(type, index) {
+        var list = MUSEUM_SCENES[type];
+        if (!list || !list.length) return;
+        index = Math.max(0, Math.min(index, list.length - 1));
+        museumState.type = type;
+        museumState.index = index;
+        var scene = list[index];
+        var host = document.getElementById("museum-pano-host");
+        var titleEl = document.getElementById("museum-pano-scene-title");
+        var hintEl = document.getElementById("museum-pano-type-hint");
+        if (!host) return;
+        if (titleEl) titleEl.textContent = scene.title;
+        if (hintEl) hintEl.textContent = TYPE_HINTS[type] || "";
+        syncMuseumTypeTabs();
+        renderMuseumSceneStrip();
+        destroyMuseumPano();
+        if (typeof pannellum === "undefined") {
+          host.innerHTML =
+            '<p class="muted" style="padding:24px;text-align:center">全景库未加载。</p>';
+          return;
+        }
+        try {
+          museumPanoViewer = pannellum.viewer("museum-pano-host", buildMuseumViewerOptions(scene));
+        } catch (e) {
+          host.innerHTML =
+            '<p class="muted" style="padding:24px;text-align:center">全景加载失败，请稍后重试。</p>';
+        }
+      }
+
+      var museumTypeTabsBound = false;
+
+      function bindMuseumTypeTabsOnce() {
+        if (museumTypeTabsBound) return;
+        museumTypeTabsBound = true;
+        var tabs = document.getElementById("museum-type-tabs");
+        if (!tabs) return;
+        tabs.querySelectorAll(".tab-btn[data-pano-type]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var t = btn.getAttribute("data-pano-type");
+            if (!t || !MUSEUM_SCENES[t]) return;
+            loadMuseumScene(t, 0);
+          });
+        });
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        bindMuseumTypeTabsOnce();
+        loadMuseumScene(museumState.type, museumState.index);
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>登录日志 — 管理后台</title>
+  <link rel="stylesheet" href="assets/admin.css" />
+  <link rel="stylesheet" href="assets/embed.css" />
+  <script src="assets/embed.js"></script>
+</head>
+<body class="admin-body">
+  <div class="admin-root">
+    <aside class="admin-sidebar" id="admin-sidebar"></aside>
+    <div class="admin-wrap">
+      <header class="admin-topbar" id="admin-topbar"></header>
+      <main class="admin-main">
+        <h1 class="admin-page-title">登录日志</h1>
+        <p class="admin-page-desc">记录登录成功/失败与说明；支持关键字搜索、删除所选、导出当前结果。</p>
+        <div class="admin-card">
+          <div class="admin-toolbar" style="flex-wrap:wrap;gap:8px">
+            <input class="admin-input" id="log-in-keyword" type="search" placeholder="账号 / IP / 说明" style="max-width:220px" />
+            <button type="button" class="btn btn-primary" id="log-in-search">搜索</button>
+            <button type="button" class="btn btn-ghost" id="log-in-reset">重置</button>
+            <button type="button" class="btn" id="log-in-export">导出</button>
+            <button type="button" class="btn btn-danger" id="log-in-del">删除所选</button>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th style="width:40px"><input type="checkbox" id="log-in-check-all" title="全选当前列表" /></th>
+                  <th>时间</th>
+                  <th>账号</th>
+                  <th>IP</th>
+                  <th>结果</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody id="log-in-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+  <div class="admin-toast" id="log-in-toast" aria-live="polite"></div>
+  <script src="assets/admin-layout.js"></script>
+  <script src="assets/log-monitor-store.js"></script>
+  <script src="assets/org-common.js"></script>
+  <script src="assets/log-login-page.js"></script>
+  <script>
+    if (!document.documentElement.classList.contains("embed-mode")) {
+      AdminLayout.init({ active: "log-in" });
+    } else {
+      AdminLayout.initTabs(document);
+    }
+  </script>
+</body>
+</html>
