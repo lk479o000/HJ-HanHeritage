@@ -10,7 +10,6 @@ import {
   IMG_HALL,
   LOGIN_LOGS,
   MENUS,
-  MODEL_URL,
   NOTICES,
   OPERATION_LOGS,
   PANORAMAS,
@@ -196,6 +195,9 @@ async function seedBusiness() {
         category: c.category,
         dynasty: c.dynasty,
         description: c.description,
+        mapLeft: c.mapLeft,
+        mapTop: c.mapTop,
+        featured: c.featured ?? 0,
         status: 1,
         delFlag: 0,
       },
@@ -236,7 +238,7 @@ async function seedBusiness() {
   }
 
   const imageTypes = ['ortho', 'rubbing', 'line', 'enhance'] as const;
-  for (let coffinId = 1; coffinId <= 3; coffinId++) {
+  for (let coffinId = 1; coffinId <= COFFIN_TITLES.length; coffinId++) {
     for (let sort = 0; sort < imageTypes.length; sort++) {
       await prisma.bizCoffinImage.create({
         data: {
@@ -247,14 +249,6 @@ async function seedBusiness() {
         },
       });
     }
-    await prisma.bizCoffinModel.create({
-      data: {
-        coffinId: BigInt(coffinId),
-        modelUrl: MODEL_URL,
-        format: 'glb',
-        fileSize: 5242880,
-      },
-    });
   }
 
   for (const p of PANORAMAS) {

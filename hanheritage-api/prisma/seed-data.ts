@@ -12,11 +12,14 @@ export const CLIFFS: Array<{
   category?: string;
   dynasty?: string;
   description?: string;
+  mapLeft?: number;
+  mapTop?: number;
+  featured?: number;
 }> = [
-  { code: 'CM-01', name: '洞溪崖墓群', dynasty: '东汉', category: 'ordinary', level: 'county' },
-  { code: 'CM-02', name: '黄溪侯五墙崖墓群', dynasty: '东汉', category: 'ordinary', level: 'county' },
-  { code: 'CM-03', name: '芭蕉湾崖墓群', dynasty: '东汉', category: 'ordinary', level: 'city' },
-  { code: 'CM-04', name: '蒋湾和幸福崖墓群', dynasty: '东汉', category: 'ordinary', level: 'city' },
+  { code: 'CM-01', name: '洞溪崖墓群', dynasty: '东汉', category: 'ordinary', level: 'county', mapLeft: 13, mapTop: 21 },
+  { code: 'CM-02', name: '黄溪侯五墙崖墓群', dynasty: '东汉', category: 'ordinary', level: 'county', mapLeft: 17, mapTop: 28 },
+  { code: 'CM-03', name: '芭蕉湾崖墓群', dynasty: '东汉', category: 'ordinary', level: 'city', mapLeft: 31, mapTop: 41 },
+  { code: 'CM-04', name: '蒋湾和幸福崖墓群', dynasty: '东汉', category: 'ordinary', level: 'city', mapLeft: 35, mapTop: 50 },
   {
     code: 'CM-05',
     name: '大耳朵崖墓群',
@@ -26,17 +29,20 @@ export const CLIFFS: Array<{
     level: 'national',
     category: 'ordinary',
     dynasty: '东汉',
+    mapLeft: 46,
+    mapTop: 33,
+    featured: 1,
     description:
       '<p>大耳朵崖墓群分布于红砂岩崖壁，为东汉时期崖洞式墓葬。2013 年公布为全国重点文物保护单位。葬具见画像石棺、石筑墓室及建筑构件等。</p>',
   },
-  { code: 'CM-06', name: '魏家祠崖墓群', dynasty: '东汉', category: 'ordinary', level: 'provincial' },
-  { code: 'CM-07', name: '观音岩崖墓群', dynasty: '东汉', category: 'ordinary', level: 'city' },
-  { code: 'CM-08', name: '渔链子崖墓群', dynasty: '东汉', category: 'ordinary', level: 'city' },
-  { code: 'CM-09', name: '大路边崖墓群', dynasty: '东汉', category: 'ordinary', level: 'county' },
-  { code: 'CM-10', name: '佛子岩崖墓群', dynasty: '东汉', category: 'ordinary', level: 'county' },
-  { code: 'CM-11', name: '鱼天堂崖墓群', dynasty: '东汉', category: 'ordinary', level: 'provincial' },
-  { code: 'CM-12', name: '高村崖墓群', dynasty: '东汉', category: 'ordinary', level: 'county' },
-  { code: 'CM-13', name: '梭滩石崖墓群', dynasty: '东汉', category: 'ordinary', level: 'county' },
+  { code: 'CM-06', name: '魏家祠崖墓群', dynasty: '东汉', category: 'ordinary', level: 'provincial', mapLeft: 51, mapTop: 43 },
+  { code: 'CM-07', name: '观音岩崖墓群', dynasty: '东汉', category: 'ordinary', level: 'city', mapLeft: 39, mapTop: 47 },
+  { code: 'CM-08', name: '渔链子崖墓群', dynasty: '东汉', category: 'ordinary', level: 'city', mapLeft: 41, mapTop: 55 },
+  { code: 'CM-09', name: '大路边崖墓群', dynasty: '东汉', category: 'ordinary', level: 'county', mapLeft: 56, mapTop: 51 },
+  { code: 'CM-10', name: '佛子岩崖墓群', dynasty: '东汉', category: 'ordinary', level: 'county', mapLeft: 61, mapTop: 45 },
+  { code: 'CM-11', name: '鱼天堂崖墓群', dynasty: '东汉', category: 'ordinary', level: 'provincial', mapLeft: 68, mapTop: 39 },
+  { code: 'CM-12', name: '高村崖墓群', dynasty: '东汉', category: 'ordinary', level: 'county', mapLeft: 75, mapTop: 46 },
+  { code: 'CM-13', name: '梭滩石崖墓群', dynasty: '东汉', category: 'ordinary', level: 'county', mapLeft: 83, mapTop: 57 },
 ];
 
 export const BIG_EAR_ENTRANCES = [
@@ -139,7 +145,7 @@ export const MENUS: Array<{
   { id: 13, parentId: null, name: '日志与在线', icon: 'list', sort: 3, type: 'dir' },
   { id: 14, parentId: 13, name: '操作日志', icon: 'notebook', path: '/admin/log-operation', component: 'monitor/operlog/index', sort: 0, type: 'menu', perms: 'monitor:operlog:list' },
   { id: 15, parentId: 13, name: '登录日志', icon: 'alarm-clock', path: '/admin/log-login', component: 'monitor/logininfor/index', sort: 1, type: 'menu', perms: 'monitor:logininfor:list' },
-  { id: 16, parentId: 13, name: '在线用户', icon: 'connection', path: '/admin/online-user', component: 'monitor/online/index', sort: 2, type: 'menu', perms: 'monitor:online:list' },
+  { id: 16, parentId: 13, name: '在线用户', icon: 'connection', path: '/admin/online-users', component: 'monitor/online/index', sort: 2, type: 'menu', perms: 'monitor:online:list' },
   { id: 17, parentId: null, name: '运维监控', icon: 'monitor', sort: 4, type: 'dir' },
   { id: 18, parentId: 17, name: '服务监控', icon: 'cpu', path: '/admin/monitor-jvm', component: 'monitor/server/index', sort: 0, type: 'menu', perms: 'monitor:server:list' },
   { id: 19, parentId: 17, name: '缓存监控', icon: 'coin', path: '/admin/monitor-redis', component: 'monitor/cache/index', sort: 1, type: 'menu', perms: 'monitor:cache:list' },
@@ -156,6 +162,7 @@ export const PANORAMAS = [
   { id: 3, name: '大耳朵崖墓群外景', category: 'ground', imageUrl: '/prototype/assets/hejiang-han-cliff-distribution.png', status: 1 },
   { id: 4, name: '墓口内部全景', category: 'inner', imageUrl: '/prototype/assets/pano-museum-indoor-coffin.png', status: 0 },
   { id: 5, name: '航拍全景', category: 'air', imageUrl: '/prototype/assets/hejiang-han-cliff-distribution.png', status: 1 },
+  { id: 6, name: '崖墓群室外环境全景', category: 'outdoor', imageUrl: '/prototype/assets/hejiang-han-cliff-distribution.png', status: 1 },
 ];
 
 export const RESOURCES = [
@@ -163,8 +170,8 @@ export const RESOURCES = [
   { id: 2, parentId: 1, name: '大耳朵崖墓群', type: 'folder', fileUrl: null, fileSize: 0 },
   { id: 3, parentId: 2, name: '分布图.png', type: 'image', fileUrl: '/prototype/assets/hejiang-han-cliff-distribution.png', fileSize: 2048000 },
   { id: 4, parentId: null, name: '石棺三维模型', type: 'folder', fileUrl: null, fileSize: 0 },
-  { id: 5, parentId: 4, name: 'coffin_m1.glb', type: 'model', fileUrl: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb', fileSize: 5242880 },
-  { id: 6, parentId: 4, name: 'coffin_m2.glb', type: 'model', fileUrl: 'https://modelviewer.dev/shared-assets/models/Horse.glb', fileSize: 4194304 },
+  { id: 5, parentId: 4, name: 'coffin_m1.glb', type: 'model', fileUrl: null, fileSize: 0 },
+  { id: 6, parentId: 4, name: 'coffin_m2.glb', type: 'model', fileUrl: null, fileSize: 0 },
   { id: 7, parentId: null, name: '扫描与点云', type: 'folder', fileUrl: null, fileSize: 0 },
   { id: 8, parentId: 7, name: 'M3墓口点云.las', type: 'pointcloud', fileUrl: null, fileSize: 104857600 },
 ];
@@ -217,4 +224,3 @@ export const LOGIN_LOGS = [
 
 export const IMG_HALL = '/prototype/assets/pano-museum-indoor-hall.png';
 export const IMG_COFFIN = '/prototype/assets/pano-museum-indoor-coffin.png';
-export const MODEL_URL = 'https://modelviewer.dev/shared-assets/models/Astronaut.glb';

@@ -1,15 +1,58 @@
 <script setup lang="ts">
-import { CLIFF_MARKERS } from '@/data/cliff-data'
+import { computed, onMounted, ref } from 'vue'
+import { getVisitorCliffs, trackVisitor } from '@/api/visitor'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-function goToCliff(id: number) {
-  if (id === 5) {
-    router.push({ name: 'big-ear-cliff' })
-  } else {
-    router.push({ name: 'cliff-detail', params: { id } })
+interface CliffMarker {
+  id: string
+  name: string
+  left: number
+  top: number
+  featured: number
+  order: number
+}
+
+const cliffMarkers = ref<CliffMarker[]>([])
+const featuredCliffId = computed(
+  () => cliffMarkers.value.find((m) => m.featured)?.id ?? cliffMarkers.value[0]?.id ?? ''
+)
+
+function fallbackPosition(index: number) {
+  return {
+    left: 12 + (index % 7) * 12,
+    top: 20 + Math.floor(index / 7) * 14,
   }
+}
+
+async function loadCliffs() {
+  try {
+    const { items } = await getVisitorCliffs()
+    cliffMarkers.value = items.map((item, index) => {
+      const fallback = fallbackPosition(index)
+      return {
+        id: item.id,
+        name: item.name,
+        left: item.mapLeft ?? fallback.left,
+        top: item.mapTop ?? fallback.top,
+        featured: item.featured,
+        order: item.order,
+      }
+    })
+  } catch {
+    cliffMarkers.value = []
+  }
+}
+
+onMounted(() => {
+  document.title = '汉墓秘境，汉韵仙踪'
+  loadCliffs()
+  trackVisitor({ event: 'home_view', page: 'home' })
+})
+
+function goToCliff(id: string) {
+  router.push({ name: 'cliff-detail', params: { id } })
 }
 
 function pad2(n: number): string {
@@ -35,7 +78,7 @@ function pad2(n: number): string {
         />
         <div class="map-markers">
           <button
-            v-for="row in CLIFF_MARKERS"
+            v-for="row in cliffMarkers"
             :key="row.id"
             type="button"
             :class="['map-marker', { 'map-marker--featured': row.featured }]"
@@ -43,14 +86,18 @@ function pad2(n: number): string {
             :aria-label="row.name + '，打开详情'"
             @click="goToCliff(row.id)"
           >
-            <span class="map-marker-code">{{ pad2(row.id) }}</span>
+            <span class="map-marker-code">{{ pad2(row.order) }}</span>
             <span class="map-marker-label" aria-hidden="true">{{ row.name }}</span>
           </button>
         </div>
         <nav class="map-home-actions--dock" aria-label="核心功能入口">
           <router-link class="map-home-btn map-home-btn--pano" :to="{ name: 'panorama' }">全景漫游</router-link>
           <router-link class="map-home-btn map-home-btn--coffin" :to="{ name: 'coffin-map' }">石棺解读</router-link>
-          <router-link class="map-home-btn map-home-btn--ear" :to="{ name: 'big-ear-cliff' }">大耳朵崖墓群</router-link>
+          <router-link
+            v-if="featuredCliffId"
+            class="map-home-btn map-home-btn--ear"
+            :to="{ name: 'cliff-detail', params: { id: featuredCliffId } }"
+          >{{ cliffMarkers.find((m) => m.featured)?.name || '大耳朵崖墓群' }}</router-link>
         </nav>
       </div>
     </div>

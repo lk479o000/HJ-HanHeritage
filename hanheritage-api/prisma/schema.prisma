@@ -213,10 +213,20 @@ model BizCliff {
   lng         Decimal? @db.Decimal(10, 5) @map("lng")
   lat         Decimal? @db.Decimal(10, 5) @map("lat")
   area        Float?   @map("area")
+  town        String?  @db.VarChar(50) @map("town")
+  address     String?  @db.VarChar(200) @map("address")
+  protectionUnitName String? @db.VarChar(150) @map("protection_unit_name")
+  composition String?  @db.VarChar(200) @map("composition")
   level       String?  @db.VarChar(20) @map("level")
   category    String?  @db.VarChar(20) @map("category")
   dynasty     String?  @db.VarChar(20) @map("dynasty")
   description String?  @db.Text @map("description")
+  mapLeft     Float?   @map("map_left")
+  mapTop      Float?   @map("map_top")
+  featured    Int      @default(0) @db.TinyInt @map("featured")
+  viewCount   Int      @default(0) @map("view_count")
+  coverImage  String?  @db.VarChar(500) @map("cover_image")
+  modelUrl    String?  @db.VarChar(500) @map("model_url")
   status      Int      @default(1) @db.TinyInt @map("status")
   delFlag     Int      @default(0) @db.TinyInt @map("del_flag")
   createdBy    String?  @db.VarChar(50) @map("create_by")
@@ -226,8 +236,22 @@ model BizCliff {
 
   entrances BizEntrance[]
   coffins   BizCoffin[]
+  images    BizCliffImage[]
 
   @@map("biz_cliff")
+}
+
+model BizCliffImage {
+  id        BigInt   @id @default(autoincrement()) @map("id")
+  cliffId   BigInt   @map("cliff_id")
+  imageUrl  String   @db.VarChar(500) @map("image_url")
+  imageType String   @default("photo") @db.VarChar(20) @map("image_type")
+  sort      Int      @default(0) @map("sort")
+  createdAt DateTime @default(now()) @map("create_time")
+
+  cliff BizCliff @relation(fields: [cliffId], references: [id])
+
+  @@map("biz_cliff_image")
 }
 
 model BizEntrance {
@@ -258,6 +282,27 @@ model BizCoffin {
   texture      String?  @db.VarChar(50) @map("texture")
   description  String?  @db.Text @map("description")
   thumbnail    String?  @db.VarChar(500) @map("thumbnail")
+  originalName       String? @db.VarChar(150) @map("original_name")
+  registryType       String? @db.VarChar(50) @map("registry_type")
+  tombGroup          String? @db.VarChar(150) @map("tomb_group")
+  eraCategory        String? @db.VarChar(50) @map("era_category")
+  eraSpecific        String? @db.VarChar(50) @map("era_specific")
+  artifactCategory   String? @db.VarChar(50) @map("artifact_category")
+  materialCategory   String? @db.VarChar(50) @map("material_category")
+  materialSpecific   String? @db.VarChar(100) @map("material_specific")
+  weightRange        String? @db.VarChar(50) @map("weight_range")
+  weightValue        String? @db.VarChar(50) @map("weight_value")
+  weightUnit         String? @db.VarChar(20) @map("weight_unit")
+  sourceDetail       String? @db.VarChar(200) @map("source_detail")
+  completenessDetail String? @db.VarChar(200) @map("completeness_detail")
+  preservationStatus String? @db.VarChar(50) @map("preservation_status")
+  accessionRange     String? @db.VarChar(50) @map("accession_range")
+  accessionYear      String? @db.VarChar(20) @map("accession_year")
+  quantity           Int?    @default(1) @map("quantity")
+  dimText            String? @db.VarChar(100) @map("dim_text")
+  mapLeft      Float?   @map("map_left")
+  mapTop       Float?   @map("map_top")
+  viewCount   Int      @default(0) @map("view_count")
   status       Int      @default(1) @db.TinyInt @map("status")
   delFlag      Int      @default(0) @db.TinyInt @map("del_flag")
   createdBy     String?  @db.VarChar(50) @map("create_by")
@@ -305,6 +350,8 @@ model BizPanorama {
   location    String?  @db.VarChar(200) @map("location")
   description String?  @db.Text @map("description")
   imageUrl    String?  @db.VarChar(500) @map("image_url")
+  fileSize    Int      @default(0) @map("file_size")
+  viewCount   Int      @default(0) @map("view_count")
   status      Int      @default(1) @db.TinyInt @map("status")
   delFlag     Int      @default(0) @db.TinyInt @map("del_flag")
   createdBy    String?  @db.VarChar(50) @map("create_by")
@@ -354,6 +401,7 @@ model BizResource {
   fileUrl   String?  @db.VarChar(500) @map("file_url")
   fileSize  Int      @default(0) @map("file_size")
   mimeType  String?  @db.VarChar(100) @map("mime_type")
+  remark    String?  @db.VarChar(500) @map("remark")
   delFlag   Int      @default(0) @db.TinyInt @map("del_flag")
   createdBy  String?  @db.VarChar(50) @map("create_by")
   updatedBy  String?  @db.VarChar(50) @map("update_by")

@@ -13,12 +13,15 @@ import { ResourceModule } from './modules/resource/resource.module';
 import { NoticeModule } from './modules/notice/notice.module';
 import { LogModule } from './modules/log/log.module';
 import { MonitorModule } from './modules/monitor/monitor.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { AiModule } from './modules/ai/ai.module';
+import { VisitorModule } from './modules/visitor/visitor.module';
 
 @Module({
   imports: [
     PrismaModule,
     MonitorModule,
+    DashboardModule,
     AuthModule,
     UserModule,
     RoleModule,
@@ -32,6 +35,7 @@ import { AiModule } from './modules/ai/ai.module';
     NoticeModule,
     LogModule,
     AiModule,
+    VisitorModule,
   ],
 })
 export class AppModule {}

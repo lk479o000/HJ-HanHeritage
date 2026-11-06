@@ -1,35 +1,59 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { CLIFF_MARKERS, TOMB_MODEL, FALLBACK_IMAGES, getCliffById } from '@/data/cliff-data'
+import '@google/model-viewer'
+import { FALLBACK_IMAGES } from '@/data/cliff-data'
+import { getVisitorCliff, trackVisitor } from '@/api/visitor'
 
 const route = useRoute()
 const router = useRouter()
 
 const cliffId = computed(() => {
   const id = Number(route.params.id)
-  return isNaN(id) || id < 1 || id > 13 ? 5 : id
+  return isNaN(id) || id < 1 ? 5 : id
 })
 
-const cliff = computed(() => {
-  return getCliffById(cliffId.value) || {
-    id: cliffId.value,
-    code: 'CM-' + String(cliffId.value).padStart(2, '0'),
-    name: '崖墓群 ' + String(cliffId.value).padStart(2, '0'),
-    left: 50,
-    top: 50,
+const cliff = ref({
+  id: cliffId.value,
+  code: '',
+  name: '',
+  description: '',
+  coverImage: '',
+  modelUrl: '',
+  images: [] as Array<{ imageUrl: string; sort?: number }>,
+})
+
+const coffins = ref<Array<{ id: string; name: string; code?: string }>>([])
+
+const isBigEar = computed(() => coffins.value.length > 0)
+
+const introText = computed(() =>
+  isBigEar.value
+    ? '该崖墓群出土石棺可从下方按钮进入石棺解读界面查看。'
+    : '该崖墓群暂无关联石棺入口。'
+)
+
+const photoSet = computed(() => {
+  const dbImages = cliff.value.images
+    .map(img => img.imageUrl)
+    .filter(Boolean)
+  if (dbImages.length > 0) {
+    return dbImages.map((src, index) => ({
+      src,
+      note: `${cliff.value.name} · 现场照片 ${index + 1}`,
+    }))
   }
+  if (cliff.value.coverImage) {
+    return [{ src: cliff.value.coverImage, note: `${cliff.value.name} · 封面图` }]
+  }
+  return [
+    { src: FALLBACK_IMAGES[0], note: cliff.value.name + ' · 现场照片 1' },
+    { src: FALLBACK_IMAGES[1], note: cliff.value.name + ' · 现场照片 2' },
+    { src: FALLBACK_IMAGES[2], note: cliff.value.name + ' · 区位与分布图' },
+  ]
 })
 
-const isBigEar = computed(() => cliffId.value === 5)
-
-const photoSet = computed(() => [
-  { src: FALLBACK_IMAGES[0], note: cliff.value.name + ' · 现场照片 1' },
-  { src: FALLBACK_IMAGES[1], note: cliff.value.name + ' · 现场照片 2' },
-  { src: FALLBACK_IMAGES[2], note: cliff.value.name + ' · 区位与分布图' },
-])
-
-const active = ref<'tomb' | 'image'>(isBigEar.value ? 'tomb' : 'image')
+const active = ref<'tomb' | 'image'>('tomb')
 const autoRotate = ref(false)
 const imageIndex = ref(0)
 const imageZoom = ref(false)
@@ -37,20 +61,52 @@ const bgColor = ref('#d9e5e2')
 const sceneMeta = ref('')
 
 const modelViewerRef = ref<HTMLElement | null>(null)
+const modelEmptyRef = ref<HTMLElement | null>(null)
 const imageStageRef = ref<HTMLElement | null>(null)
 const imageElRef = ref<HTMLImageElement | null>(null)
 const imageCapRef = ref<HTMLElement | null>(null)
 
+const hasModel = computed(() => Boolean(cliff.value.modelUrl && cliff.value.modelUrl.trim()))
+
 const MODELS = {
   tomb: {
-    name: cliff.value.name,
-    src: TOMB_MODEL,
+    get name() {
+      return cliff.value.name
+    },
+    get src() {
+      return cliff.value.modelUrl
+    },
     near: '22deg 78deg 12m',
     far: '10deg 35deg 34m',
     target: '0m 0m 0m',
     fov: '30deg',
     note: '崖墓群实景三维模型',
   },
+}
+
+async function loadCliff() {
+  try {
+    const data = await getVisitorCliff(cliffId.value)
+    cliff.value = {
+      id: data.id,
+      code: data.code,
+      name: data.name,
+      description: data.description ?? '',
+      coverImage: data.coverImage ?? '',
+      modelUrl: data.modelUrl ?? '',
+      images: Array.isArray(data.images)
+        ? data.images.map((img: any) => ({ imageUrl: img.imageUrl, sort: img.sort }))
+        : [],
+    }
+    coffins.value = data.coffins ?? []
+    trackVisitor({ event: 'cliff_view', page: 'cliff', targetId: cliffId.value })
+    active.value = 'tomb'
+    updateViewerMode()
+    await nextTick()
+    applyScene('tomb')
+  } catch {
+    router.replace({ name: 'home' })
+  }
 }
 
 function setMeta(msg: string) {
@@ -73,9 +129,11 @@ function setOrbitRadius(r: number) {
 
 function updateViewerMode() {
   const mv = modelViewerRef.value as any
-  const inModel = active.value === 'tomb'
+  const inModel = active.value === 'tomb' && hasModel.value
+  const inEmpty = active.value === 'tomb' && !hasModel.value
   if (mv) mv.style.display = inModel ? 'block' : 'none'
-  if (imageStageRef.value) imageStageRef.value.style.display = inModel ? 'none' : 'block'
+  if (modelEmptyRef.value) modelEmptyRef.value.style.display = inEmpty ? 'flex' : 'none'
+  if (imageStageRef.value) imageStageRef.value.style.display = active.value === 'tomb' ? 'none' : 'block'
 }
 
 function showImage(idx: number) {
@@ -101,6 +159,12 @@ function applyScene(key: 'tomb' | 'image') {
     return
   }
   const cfg = MODELS.tomb
+  if (!hasModel.value) {
+    active.value = 'tomb'
+    updateViewerMode()
+    setMeta('该崖墓三维模型待补充。')
+    return
+  }
   const mv = modelViewerRef.value as any
   if (!mv || !cfg) return
   active.value = 'tomb'
@@ -158,6 +222,12 @@ function resetView() {
   applyScene(active.value)
 }
 
+function onFullscreenChange() {
+  const target =
+    document.fullscreenElement || (active.value === 'tomb' ? modelViewerRef.value : imageStageRef.value)
+  if (target) target.classList.toggle('viewport-fullscreen', !!document.fullscreenElement)
+}
+
 function toggleFullscreen() {
   const targetEl = active.value === 'tomb' ? modelViewerRef.value : imageStageRef.value
   if (!targetEl) return
@@ -188,16 +258,17 @@ function onBgColorInput(e: Event) {
   if (mv) mv.style.background = val
 }
 
+watch(cliff, () => {
+  document.title = cliff.value.name + ' — 专属界面'
+}, { immediate: true })
+
 onMounted(() => {
-  if (!isBigEar.value) {
-    active.value = 'image'
-    updateViewerMode()
-    showImage(0)
-    setMeta('当前为图片查看。')
-  } else {
-    updateViewerMode()
-    applyScene('tomb')
-  }
+  document.addEventListener('fullscreenchange', onFullscreenChange)
+  loadCliff()
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('fullscreenchange', onFullscreenChange)
 })
 </script>
 
@@ -213,42 +284,42 @@ onMounted(() => {
         <aside class="panel">
           <h2>{{ cliff.name }}简介</h2>
           <figure class="gf-intro-figure">
-            <img src="https://pannellum.org/images/alma.jpg" alt="崖墓群简介示意图" loading="lazy" decoding="async" />
+            <img :src="photoSet[0].src" alt="崖墓群简介示意图" loading="lazy" decoding="async" />
             <figcaption class="muted">图：{{ cliff.name }}实景图</figcaption>
           </figure>
-          <p class="muted" style="margin: 10px 0 0; font-size: 0.92rem">
-            {{ cliff.name }}专属页面。支持图片查看。{{
-              isBigEar
-                ? ' 该崖墓群出土石棺可从下方按钮进入石棺解读界面查看。'
-                : ' 该崖墓群暂无关联石棺入口。'
-            }}
+          <div v-if="cliff.description" class="muted gf-intro-desc" v-html="cliff.description"></div>
+          <p v-else class="muted" style="margin: 10px 0 0; font-size: 0.92rem">
+            {{ cliff.name }}专属页面。支持图片查看。{{ introText }}
           </p>
-          <template v-if="isBigEar">
-            <h3>模型切换</h3>
-            <div class="btn-row gf-model-switch" style="margin-top: 8px">
-              <button
-                type="button"
-                :class="['btn-touch', 'primary', { 'is-active': active === 'tomb' }]"
-                @click="applyScene('tomb')"
-              >
-                崖墓群模型
-              </button>
-              <button
-                type="button"
-                :class="['btn-touch', { 'is-active': active === 'image' }]"
-                @click="applyScene('image')"
-              >
-                图片查看
-              </button>
-              <router-link class="btn-touch" :to="{ name: 'coffin', params: { id: 1 }, query: { from: 'ear' } }">石棺 1</router-link>
-              <router-link class="btn-touch" :to="{ name: 'coffin', params: { id: 2 }, query: { from: 'ear' } }">石棺 2</router-link>
-            </div>
-          </template>
+          <h3>模型切换</h3>
+          <div class="btn-row gf-model-switch" style="margin-top: 8px">
+            <button
+              type="button"
+              :class="['btn-touch', { primary: active === 'tomb', 'is-active': active === 'tomb' }]"
+              @click="applyScene('tomb')"
+            >
+              崖墓群模型
+            </button>
+            <button
+              type="button"
+              :class="['btn-touch', { primary: active === 'image', 'is-active': active === 'image' }]"
+              @click="applyScene('image')"
+            >
+              图片查看
+            </button>
+            <router-link
+              v-for="(item, index) in coffins.slice(0, 2)"
+              :key="item.id"
+              class="btn-touch"
+              :to="{ name: 'coffin', params: { id: item.id }, query: { from: 'ear' } }"
+            >石棺 {{ index + 1 }}</router-link>
+          </div>
           <p class="muted" style="margin: 10px 0 0; font-size: 0.84rem">{{ sceneMeta }}</p>
         </aside>
 
         <section style="display: flex; flex-direction: column; min-height: 0">
           <model-viewer
+            v-if="hasModel"
             ref="modelViewerRef"
             class="proto-model-viewer"
             camera-controls
@@ -259,6 +330,14 @@ onMounted(() => {
             alt="崖墓群三维模型"
             style="flex: 1; min-height: 380px"
           ></model-viewer>
+          <div
+            v-else
+            ref="modelEmptyRef"
+            class="cliff-model-empty"
+            style="display: none; flex: 1; min-height: 380px"
+          >
+            <p>该崖墓三维模型待补充</p>
+          </div>
           <div ref="imageStageRef" class="coffin-stage-media" style="display: none; min-height: 380px">
             <figure class="coffin-media-stage-card">
               <img ref="imageElRef" alt="崖墓群图片" />
@@ -266,15 +345,15 @@ onMounted(() => {
             </figure>
           </div>
 
-          <div v-if="isBigEar" class="toolbar-dock">
-            <div class="group" style="flex-direction: column; align-items: stretch">
+          <div class="toolbar-dock">
+            <div v-if="isBigEar" class="group" style="flex-direction: column; align-items: stretch">
               <span class="label">固定视点（仅崖墓群模型）</span>
               <div class="btn-row">
                 <button type="button" class="btn-touch primary" @click="jumpView('near')">崖墓近景</button>
                 <button type="button" class="btn-touch primary" @click="jumpView('far')">崖墓全景</button>
               </div>
             </div>
-            <div class="group" style="flex-direction: column; align-items: stretch">
+            <div v-if="isBigEar" class="group" style="flex-direction: column; align-items: stretch">
               <span class="label">通用三维交互</span>
               <div class="btn-row">
                 <button type="button" class="btn-touch" @click="zoomOut">缩小 −</button>
@@ -287,9 +366,9 @@ onMounted(() => {
               <span class="label">显示与背景</span>
               <div class="btn-row color-strip">
                 <button type="button" class="btn-touch" @click="toggleFullscreen">全屏视口</button>
-                <button v-if="active === 'image'" type="button" class="btn-touch" @click="prevImage">上一张</button>
-                <button v-if="active === 'image'" type="button" class="btn-touch" @click="nextImage">下一张</button>
-                <button v-if="active === 'image'" type="button" class="btn-touch" @click="toggleImageZoom">{{ imageZoom ? '恢复大小' : '图片放大' }}</button>
+                <button type="button" class="btn-touch" @click="prevImage">上一张</button>
+                <button type="button" class="btn-touch" @click="nextImage">下一张</button>
+                <button type="button" class="btn-touch" @click="toggleImageZoom">{{ imageZoom ? '恢复大小' : '图片放大' }}</button>
                 <label class="muted" style="display: flex; align-items: center; gap: 8px">
                   背景取色
                   <input type="color" :value="bgColor" aria-label="崖墓群背景色取色器" @input="onBgColorInput" />
@@ -306,4 +385,23 @@ onMounted(() => {
 </template>
 
 <style scoped lang="scss">
+.gf-intro-desc {
+  margin-top: 10px;
+  font-size: 0.92rem;
+}
+
+.cliff-model-empty {
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #b8c9c5;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  color: #5a6b67;
+
+  p {
+    margin: 0;
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+  }
+}
 </style>

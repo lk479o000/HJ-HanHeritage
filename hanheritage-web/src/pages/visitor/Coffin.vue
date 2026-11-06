@@ -1,19 +1,23 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { getCoffinData, pad2 } from '@/data/coffin-data'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
+import '@google/model-viewer'
+import { pad2 } from '@/data/coffin-data'
+import { getVisitorCoffins, trackVisitor } from '@/api/visitor'
+import type { VisitorCoffin } from '@/api/visitor'
 
 const route = useRoute()
-const router = useRouter()
 
 const fromEar = computed(() => route.query.from === 'ear')
 
-const coffinId = computed(() => {
-  const id = Number(route.params.id)
-  return isNaN(id) || id < 1 || id > 28 ? 1 : id
-})
+const coffinId = computed(() => String(route.params.id ?? ''))
 
+const coffins = ref<VisitorCoffin[]>([])
 const idx = ref(coffinId.value)
+const lastTrackedId = ref('')
+const current = computed(() => coffins.value.find((c) => c.id === idx.value) || null)
+const backCliffId = computed(() => current.value?.cliffId ?? '')
+
 const autoRotate = ref(false)
 const measureOn = ref(false)
 const measurePts = ref<number[][]>([])
@@ -21,7 +25,6 @@ const stageView = ref('model')
 const bgColor = ref('#ddd5c8')
 
 const modelViewerRef = ref<HTMLElement | null>(null)
-const stageMediaWrap = ref<HTMLElement | null>(null)
 const stageMediaImg = ref<HTMLImageElement | null>(null)
 const stageMediaCap = ref<HTMLElement | null>(null)
 const titleEl = ref<HTMLElement | null>(null)
@@ -38,7 +41,28 @@ const stageViews: { key: StageViewKey; label: string }[] = [
   { key: 'enhance', label: '数字信息增强图' },
 ]
 
-const coffinData = computed(() => getCoffinData(idx.value))
+const coffinData = computed(() => {
+  const c = current.value
+  const name = c?.name || '石棺加载中…'
+  const findImage = (type: string) =>
+    c?.images.find((img) => img.imageType === type)?.imageUrl ||
+    c?.images[0]?.imageUrl ||
+    c?.thumbnail ||
+    ''
+  return {
+    name,
+    modelSrc: c?.models[0]?.modelUrl || '',
+    intro: c?.description || name,
+    media: {
+      ortho: { src: findImage('ortho'), note: name + ' · 数字正射影像图' },
+      rubbing: { src: findImage('rubbing'), note: name + ' · 数字拓片图' },
+      line: { src: findImage('line'), note: name + ' · 数字线划图' },
+      enhance: { src: findImage('enhance'), note: name + ' · 数字信息增强图' },
+    },
+  }
+})
+
+const hasModel = computed(() => Boolean(coffinData.value.modelSrc && coffinData.value.modelSrc.trim()))
 
 function setModelRadius(factor: number) {
   const mv = modelViewerRef.value as any
@@ -53,31 +77,39 @@ function setModelRadius(factor: number) {
 function setStageView(view: string) {
   stageView.value = view
   const data = coffinData.value
-  const mv = modelViewerRef.value as any
-  const wrap = stageMediaWrap.value
   const img = stageMediaImg.value
   const cap = stageMediaCap.value
 
   if (view === 'model') {
-    if (mv) mv.style.display = 'block'
-    if (wrap) wrap.style.display = 'none'
     if (!measureOn.value && hintEl.value) {
-      hintEl.value.textContent = data.name + ' · 默认最佳观察角度：斜前方。已限制底面观察。石棺尺寸测量仅在本页三维模型上可用。'
+      hintEl.value.textContent = hasModel.value
+        ? data.name + ' · 默认最佳观察角度：斜前方。已限制底面观察。石棺尺寸测量仅在本页三维模型上可用。'
+        : data.name + ' · 该石棺三维模型待补充，可切换其他影像查看。'
     }
     return
   }
   const media = data.media[view as keyof typeof data.media]
   if (!media) return
-  if (mv) mv.style.display = 'none'
-  if (wrap) wrap.style.display = 'block'
-  if (img) img.src = media.src
+  if (img && media.src) img.src = media.src
   if (cap) cap.textContent = media.note + ''
   if (hintEl.value) hintEl.value.textContent = data.name + ' · 当前展示：' + media.note
 }
 
-function renderCoffin(n: number) {
-  idx.value = n
-  const d = getCoffinData(n)
+function onStageView(view: StageViewKey) {
+  setStageView(view)
+  trackVisitor({
+    event: 'coffin_stage_switch',
+    page: 'coffin',
+    targetId: idx.value,
+    detail: stageViews.find((item) => item.key === view)?.label,
+  })
+}
+
+function renderCoffin(id: string) {
+  const c = coffins.value.find((item) => item.id === id) || coffins.value[0]
+  if (!c) return
+  idx.value = c.id
+  const d = coffinData.value
   if (titleEl.value) titleEl.value.textContent = d.name + '简介'
   if (introEl.value) introEl.value.textContent = d.intro
   measureOn.value = false
@@ -85,7 +117,11 @@ function renderCoffin(n: number) {
 
   const mv = modelViewerRef.value as any
   if (mv) {
-    mv.setAttribute('src', d.modelSrc)
+    if (d.modelSrc) {
+      mv.setAttribute('src', d.modelSrc)
+    } else {
+      mv.removeAttribute('src')
+    }
     mv.setAttribute('camera-orbit', '35deg 78deg 5m')
     mv.setAttribute('camera-target', '0m 0.2m 0m')
     mv.setAttribute('field-of-view', '30deg')
@@ -96,19 +132,26 @@ function renderCoffin(n: number) {
     }
   }
   setStageView(stageView.value)
+  if (lastTrackedId.value !== c.id) {
+    lastTrackedId.value = c.id
+    trackVisitor({ event: 'coffin_view', page: 'coffin', targetId: c.id, detail: c.name })
+  }
 }
 
 function onPrev() {
-  renderCoffin(idx.value <= 1 ? 28 : idx.value - 1)
+  const pos = coffins.value.findIndex((item) => item.id === idx.value)
+  const next = pos <= 0 ? coffins.value[coffins.value.length - 1] : coffins.value[pos - 1]
+  if (next) renderCoffin(next.id)
 }
 
 function onNext() {
-  renderCoffin(idx.value >= 28 ? 1 : idx.value + 1)
+  const pos = coffins.value.findIndex((item) => item.id === idx.value)
+  const next = pos < 0 || pos >= coffins.value.length - 1 ? coffins.value[0] : coffins.value[pos + 1]
+  if (next) renderCoffin(next.id)
 }
 
 function onSelectChange(e: Event) {
-  const val = Number((e.target as HTMLSelectElement).value)
-  renderCoffin(Math.max(1, Math.min(28, val || 1)))
+  renderCoffin((e.target as HTMLSelectElement).value)
 }
 
 function zoomIn() {
@@ -132,6 +175,11 @@ function toggleAutoRotate() {
 
 function resetView() {
   renderCoffin(idx.value)
+}
+
+function onFullscreenChange() {
+  const target = document.fullscreenElement || modelViewerRef.value
+  if (target) target.classList.toggle('viewport-fullscreen', !!document.fullscreenElement)
 }
 
 function toggleFullscreen() {
@@ -163,7 +211,7 @@ function toggleMeasure() {
 }
 
 function onModelClick(e: MouseEvent) {
-  if (!measureOn.value || stageView.value !== 'model') return
+  if (!hasModel.value || !measureOn.value || stageView.value !== 'model') return
   const mv = modelViewerRef.value as any
   if (!mv || typeof mv.positionAndNormalFromPoint !== 'function') {
     if (hintEl.value) {
@@ -204,12 +252,31 @@ function onModelClick(e: MouseEvent) {
   })
 }
 
+async function loadCoffins() {
+  try {
+    const { items } = await getVisitorCoffins()
+    coffins.value = items
+    const target = items.find((item) => item.id === coffinId.value) || items[0]
+    if (!target) return
+    await nextTick()
+    renderCoffin(target.id)
+  } catch {
+    coffins.value = []
+  }
+}
+
 watch(coffinId, (newId) => {
-  renderCoffin(newId)
+  if (coffins.value.length) renderCoffin(newId)
 })
 
 onMounted(() => {
-  renderCoffin(coffinId.value)
+  document.title = '合江石棺展示（石棺解读）'
+  document.addEventListener('fullscreenchange', onFullscreenChange)
+  loadCoffins()
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('fullscreenchange', onFullscreenChange)
 })
 </script>
 
@@ -219,7 +286,7 @@ onMounted(() => {
       <header class="top-bar">
         <router-link
           class="btn-touch ghost"
-          :to="fromEar ? { name: 'big-ear-cliff' } : { name: 'home' }"
+          :to="fromEar && backCliffId ? { name: 'cliff-detail', params: { id: backCliffId } } : { name: 'home' }"
         >
           {{ fromEar ? '← 返回大耳朵崖墓群' : '← 首页' }}
         </router-link>
@@ -227,8 +294,8 @@ onMounted(() => {
         <div class="gf-toolbar-select">
           <button type="button" class="btn-touch" aria-label="上一具石棺" @click="onPrev">← 上一具</button>
           <label for="coffin-select">编号</label>
-          <select id="coffin-select" :value="idx" aria-label="选择石棺编号 1至28" @change="onSelectChange">
-            <option v-for="i in 28" :key="i" :value="i">{{ pad2(i) }} 号石棺</option>
+          <select id="coffin-select" :value="idx" aria-label="选择石棺" @change="onSelectChange">
+            <option v-for="c in coffins" :key="c.id" :value="c.id">{{ pad2(c.order) }} 号石棺</option>
           </select>
           <button type="button" class="btn-touch" aria-label="下一具石棺" @click="onNext">下一具 →</button>
         </div>
@@ -247,6 +314,7 @@ onMounted(() => {
         <section style="display: flex; flex-direction: column; min-height: 0">
           <div class="coffin-main-stage">
             <model-viewer
+              v-show="stageView === 'model' && hasModel"
               ref="modelViewerRef"
               class="proto-model-viewer coffin-main-viewer"
               camera-controls
@@ -261,7 +329,13 @@ onMounted(() => {
               alt="石棺三维模型"
               @click="onModelClick"
             ></model-viewer>
-            <div ref="stageMediaWrap" class="coffin-stage-media" :hidden="stageView === 'model'">
+            <div
+              v-show="stageView === 'model' && !hasModel"
+              class="coffin-model-empty"
+            >
+              <p>该石棺三维模型待补充</p>
+            </div>
+            <div v-show="stageView !== 'model'" class="coffin-stage-media">
               <figure class="coffin-media-stage-card">
                 <img ref="stageMediaImg" alt="石棺附属影像" />
                 <figcaption class="muted" ref="stageMediaCap"></figcaption>
@@ -277,7 +351,7 @@ onMounted(() => {
               :key="sv.key"
               type="button"
               :class="['btn-touch', { 'primary': stageView === sv.key, 'is-active': stageView === sv.key }]"
-              @click="setStageView(sv.key)"
+              @click="onStageView(sv.key)"
             >
               {{ sv.label }}
             </button>
@@ -294,7 +368,7 @@ onMounted(() => {
                 </label>
               </div>
             </div>
-            <div v-if="stageView === 'model'" class="group" style="flex-direction: column; align-items: stretch">
+            <div class="group" style="flex-direction: column; align-items: stretch">
               <span class="label">通用三维交互</span>
               <div class="btn-row">
                 <button type="button" class="btn-touch" @click="zoomOut">缩小 −</button>
@@ -303,7 +377,7 @@ onMounted(() => {
                 <button type="button" class="btn-touch" @click="resetView">复位</button>
               </div>
             </div>
-            <div v-if="stageView === 'model'" class="group" style="flex-direction: column; align-items: stretch">
+            <div class="group" style="flex-direction: column; align-items: stretch">
               <span class="label">石棺尺寸测量（仅三维模型）</span>
               <div class="btn-row">
                 <button type="button" class="btn-touch" @click="toggleMeasure">{{ measureOn ? '关闭石棺测量' : '开启石棺测量' }}</button>
@@ -320,4 +394,21 @@ onMounted(() => {
 </template>
 
 <style scoped lang="scss">
+.coffin-model-empty {
+  display: flex;
+  flex: 1;
+  min-height: 380px;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #b8c9c5;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  color: #5a6b67;
+
+  p {
+    margin: 0;
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+  }
+}
 </style>

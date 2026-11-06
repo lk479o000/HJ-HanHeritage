@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import 'pannellum'
+import 'pannellum/build/pannellum.css'
+import { getVisitorPanoramas, trackVisitor } from '@/api/visitor'
+import type { VisitorPanorama } from '@/api/visitor'
 
 interface PanoScene {
   id: string
@@ -10,7 +14,7 @@ interface PanoScene {
   partial?: Record<string, number>
 }
 
-const DEMO_PANO = 'https://pannellum.org/images/alma.jpg'
+const DEMO_PANO = '/prototype/assets/pano-museum-indoor-hall.png'
 
 const TYPE_HINTS: Record<string, string> = {
   air: '空中：无人机/高架等距柱状全景；拖拽环视 360°×180°，滚轮或右下角控件缩放。',
@@ -19,71 +23,48 @@ const TYPE_HINTS: Record<string, string> = {
   outdoor: '室外：馆外环境与庭院。',
 }
 
-const MUSEUM_SCENES: Record<string, PanoScene[]> = {
-  air: [
-    {
-      id: 'm-air-1',
-      title: '博物馆院区·航拍全景 A',
-      pano: DEMO_PANO,
-      thumb: DEMO_PANO,
-      view: { pitch: 2, yaw: 0, hfov: 95 },
-    },
-    {
-      id: 'm-air-2',
-      title: '博物馆院区·航拍全景 B',
-      pano: DEMO_PANO,
-      thumb: DEMO_PANO,
-      view: { pitch: -4, yaw: 135, hfov: 88 },
-    },
-  ],
-  ground: [
-    {
-      id: 'm-gr-1',
-      title: '入口广场·地面点位 A',
-      pano: DEMO_PANO,
-      thumb: DEMO_PANO,
-      view: { pitch: 0, yaw: 40, hfov: 92 },
-    },
-    {
-      id: 'm-gr-2',
-      title: '馆前步道·地面点位 B',
-      pano: DEMO_PANO,
-      thumb: DEMO_PANO,
-      view: { pitch: 3, yaw: -70, hfov: 100 },
-    },
-  ],
-  indoor: [
-    {
-      id: 'm-in-1',
-      title: '展厅通道·石棺阵列',
-      pano: '/prototype/assets/pano-museum-indoor-hall.png',
-      thumb: '/prototype/assets/pano-museum-indoor-hall.png',
-      partial: { haov: 108, vaov: 68, minHfov: 36, maxHfov: 108, hfov: 86, pitch: 0, yaw: 0 },
-    },
-    {
-      id: 'm-in-2',
-      title: '1 号石棺展柜近景',
-      pano: '/prototype/assets/pano-museum-indoor-coffin.png',
-      thumb: '/prototype/assets/pano-museum-indoor-coffin.png',
-      partial: { haov: 108, vaov: 68, minHfov: 36, maxHfov: 108, hfov: 86, pitch: 0, yaw: 0 },
-    },
-  ],
-  outdoor: [
-    {
-      id: 'm-out-1',
-      title: '馆外立面·室外点位 A',
-      pano: DEMO_PANO,
-      thumb: DEMO_PANO,
-      view: { pitch: 1, yaw: 20, hfov: 96 },
-    },
-    {
-      id: 'm-out-2',
-      title: '庭院与周边环境·室外点位 B',
-      pano: DEMO_PANO,
-      thumb: DEMO_PANO,
-      view: { pitch: -2, yaw: 200, hfov: 90 },
-    },
-  ],
+const MUSEUM_SCENES = ref<Record<string, PanoScene[]>>({
+  air: [],
+  ground: [],
+  indoor: [],
+  outdoor: [],
+})
+
+const CATEGORY_MAP: Record<string, string> = {
+  air: 'air',
+  ground: 'ground',
+  inner: 'indoor',
+  indoor: 'indoor',
+  outdoor: 'outdoor',
+}
+
+const PARTIAL_CONFIG = { haov: 108, vaov: 68, minHfov: 36, maxHfov: 108, hfov: 86, pitch: 0, yaw: 0 }
+
+function buildScene(item: VisitorPanorama): PanoScene {
+  const image = item.imageUrl || DEMO_PANO
+  const isEquirectangular = /\.(jpg|jpeg)(\?.*)?$/i.test(image)
+  return {
+    id: item.id,
+    title: item.name,
+    pano: image,
+    thumb: image,
+    ...(isEquirectangular ? { view: { pitch: 2, yaw: 0, hfov: 95 } } : { partial: PARTIAL_CONFIG }),
+  }
+}
+
+async function loadPanoramas() {
+  try {
+    const { items } = await getVisitorPanoramas()
+    const grouped: Record<string, PanoScene[]> = { air: [], ground: [], indoor: [], outdoor: [] }
+    items.forEach((item) => {
+      const type = CATEGORY_MAP[item.category] || item.category
+      if (!grouped[type]) grouped[type] = []
+      grouped[type].push(buildScene(item))
+    })
+    MUSEUM_SCENES.value = grouped
+  } catch {
+    MUSEUM_SCENES.value = { air: [], ground: [], indoor: [], outdoor: [] }
+  }
 }
 
 const panoTypes = [
@@ -138,16 +119,31 @@ function buildViewerOptions(scene: PanoScene) {
   return opt
 }
 
-function loadScene(type: string, index: number) {
-  const list = MUSEUM_SCENES[type]
-  if (!list || !list.length) return
-  index = Math.max(0, Math.min(index, list.length - 1))
+function loadScene(type: string, index: number, interaction = false) {
+  const list = MUSEUM_SCENES.value[type]
   currentType.value = type
+  currentIndex.value = 0
+  if (!list || !list.length) {
+    sceneTitle.value = '暂无场景'
+    typeHint.value = (TYPE_HINTS[type] || '') + ' 该分类暂未配置全景点位。'
+    destroyPano()
+    if (panoHostRef.value) {
+      panoHostRef.value.innerHTML = '<p class="muted" style="padding:24px;text-align:center">该分类暂无全景点位。</p>'
+    }
+    return
+  }
+  index = Math.max(0, Math.min(index, list.length - 1))
   currentIndex.value = index
   const scene = list[index]
   sceneTitle.value = scene.title
   typeHint.value = TYPE_HINTS[type] || ''
   destroyPano()
+  trackVisitor({
+    event: interaction ? 'panorama_switch' : 'panorama_view',
+    page: 'panorama',
+    targetId: scene.id,
+    detail: scene.title,
+  })
   if (!panoHostRef.value) return
   if (typeof (window as any).pannellum === 'undefined') {
     panoHostRef.value.innerHTML = '<p class="muted" style="padding:24px;text-align:center">全景库未加载。</p>'
@@ -161,15 +157,18 @@ function loadScene(type: string, index: number) {
 }
 
 function switchType(type: string) {
-  loadScene(type, 0)
+  loadScene(type, 0, true)
 }
 
 function selectScene(index: number) {
-  loadScene(currentType.value, index)
+  loadScene(currentType.value, index, true)
 }
 
-onMounted(() => {
-  loadScene('air', 0)
+onMounted(async () => {
+  document.title = '全景漫游 · 合江博物馆'
+  await loadPanoramas()
+  const firstType = panoTypes.find((pt) => MUSEUM_SCENES.value[pt.key]?.length)?.key || 'air'
+  loadScene(firstType, 0)
 })
 
 onBeforeUnmount(() => {

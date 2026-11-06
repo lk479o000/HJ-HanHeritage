@@ -9,14 +9,23 @@ export interface OnlineUser {
   client?: string;
   loginAt: Date;
   token: string;
+  userType?: 'admin' | 'visitor';
+  currentPage?: string;
 }
 
 @Injectable()
 export class OnlineUserService {
   private onlineUsers = new Map<string, OnlineUser>();
   private readonly TOKEN_EXPIRE_MS = 2 * 60 * 60 * 1000; // 2小时
+  private readonly VISITOR_EXPIRE_MS = 30 * 60 * 1000; // 游客30分钟无活动视为离线
+
+  private isExpired(user: OnlineUser, now: number) {
+    const ttl = user.userType === 'visitor' ? this.VISITOR_EXPIRE_MS : this.TOKEN_EXPIRE_MS;
+    return now - user.loginAt.getTime() >= ttl;
+  }
 
   addUser(userId: string, name: string, token: string, ip?: string, client?: string, dept?: string) {
+    this.removeByUserId(userId);
     const id = `online_${userId}_${Date.now()}`;
     const onlineUser: OnlineUser = {
       id,
@@ -32,6 +41,25 @@ export class OnlineUserService {
     // 清理过期的用户
     this.cleanExpiredUsers();
     return onlineUser;
+  }
+
+  touchVisitor(visitorId: string, currentPage?: string, ip?: string) {
+    const id = `visitor_${visitorId}`;
+    const existing = this.onlineUsers.get(id);
+    this.onlineUsers.set(id, {
+      id,
+      userId: visitorId,
+      name: existing?.name ?? '游客访客',
+      dept: '游客端',
+      ip: ip ?? existing?.ip,
+      client: '游客端页面',
+      loginAt: new Date(),
+      token: '',
+      userType: 'visitor',
+      currentPage,
+    });
+    this.cleanExpiredUsers();
+    return this.onlineUsers.get(id);
   }
 
   removeUser(id: string) {
@@ -52,7 +80,7 @@ export class OnlineUserService {
   getOnlineUsers(page = 1, pageSize = 10) {
     const now = Date.now();
     const users = Array.from(this.onlineUsers.values()).filter(
-      user => now - user.loginAt.getTime() < this.TOKEN_EXPIRE_MS
+      user => !this.isExpired(user, now)
     );
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
@@ -66,7 +94,7 @@ export class OnlineUserService {
     const now = Date.now();
     const toRemove: string[] = [];
     for (const [id, user] of this.onlineUsers.entries()) {
-      if (now - user.loginAt.getTime() >= this.TOKEN_EXPIRE_MS) {
+      if (this.isExpired(user, now)) {
         toRemove.push(id);
       }
     }

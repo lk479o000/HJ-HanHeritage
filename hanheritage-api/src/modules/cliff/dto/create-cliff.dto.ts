@@ -1,9 +1,15 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, IsArray } from 'class-validator';
+
+export interface CliffImageInput {
+  imageUrl: string;
+  imageType?: string;
+  sort?: number;
+}
 
 export class CreateCliffDto {
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  code: string;
+  code?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -23,6 +29,22 @@ export class CreateCliffDto {
 
   @IsOptional()
   @IsString()
+  town?: string;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @IsOptional()
+  @IsString()
+  protectionUnitName?: string;
+
+  @IsOptional()
+  @IsString()
+  composition?: string;
+
+  @IsOptional()
+  @IsString()
   level?: string;
 
   @IsOptional()
@@ -38,6 +60,30 @@ export class CreateCliffDto {
   description?: string;
 
   @IsOptional()
+  @IsString()
+  coverImage?: string;
+
+  @IsOptional()
+  @IsString()
+  modelUrl?: string;
+
+  @IsOptional()
+  @IsArray()
+  images?: CliffImageInput[];
+
+  @IsOptional()
   @IsNumber()
   status?: number;
+
+  @IsOptional()
+  @IsNumber()
+  mapLeft?: number;
+
+  @IsOptional()
+  @IsNumber()
+  mapTop?: number;
+
+  @IsOptional()
+  @IsNumber()
+  featured?: number;
 }

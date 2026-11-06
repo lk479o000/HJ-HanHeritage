@@ -21,11 +21,17 @@ export class CliffController {
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
     @Query('keyword') keyword?: string,
+    @Query('level') level?: string,
+    @Query('town') town?: string,
+    @Query('status') status?: string,
   ) {
     return this.cliffService.findAll(
       page ? parseInt(page, 10) : 1,
       pageSize ? parseInt(pageSize, 10) : 10,
       keyword,
+      level,
+      town,
+      status,
     );
   }
 
@@ -33,10 +39,12 @@ export class CliffController {
   findEntrances(
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
+    @Query('cliffId') cliffId?: string,
   ) {
     return this.cliffService.findEntrances(
       page ? parseInt(page, 10) : 1,
       pageSize ? parseInt(pageSize, 10) : 10,
+      cliffId,
     );
   }
 
@@ -48,6 +56,11 @@ export class CliffController {
   @Delete('entrances/:id')
   deleteEntrance(@Param('id') id: string) {
     return this.cliffService.deleteEntrance(id);
+  }
+
+  @Get('model/check')
+  checkModel(@Query('url') url?: string) {
+    return this.cliffService.checkModelUrl(url);
   }
 
   @Get(':id')

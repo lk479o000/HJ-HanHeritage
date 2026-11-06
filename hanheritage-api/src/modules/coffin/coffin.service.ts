@@ -27,10 +27,52 @@ export class CoffinService {
         texture: dto.texture,
         description: dto.description,
         thumbnail: dto.thumbnail,
+        originalName: dto.originalName,
+        registryType: dto.registryType,
+        tombGroup: dto.tombGroup,
+        eraCategory: dto.eraCategory,
+        eraSpecific: dto.eraSpecific,
+        artifactCategory: dto.artifactCategory,
+        materialCategory: dto.materialCategory,
+        materialSpecific: dto.materialSpecific,
+        weightRange: dto.weightRange,
+        weightValue: dto.weightValue,
+        weightUnit: dto.weightUnit,
+        sourceDetail: dto.sourceDetail,
+        completenessDetail: dto.completenessDetail,
+        preservationStatus: dto.preservationStatus,
+        accessionRange: dto.accessionRange,
+        accessionYear: dto.accessionYear,
+        quantity: dto.quantity ?? 1,
+        dimText: dto.dimText,
+        mapLeft: dto.mapLeft,
+        mapTop: dto.mapTop,
         status: dto.status ?? 1,
+        ...(dto.images?.length
+          ? {
+              images: {
+                create: dto.images.map((img, index) => ({
+                  imageUrl: img.imageUrl,
+                  imageType: img.imageType || 'ortho',
+                  sort: img.sort ?? index,
+                })),
+              },
+            }
+          : {}),
+        ...(dto.models?.length
+          ? {
+              models: {
+                create: dto.models.map((model) => ({
+                  modelUrl: model.modelUrl,
+                  format: model.format || 'glb',
+                  fileSize: model.fileSize,
+                })),
+              },
+            }
+          : {}),
       },
     });
-    return { ...coffin, id: coffin.id.toString(), cliffId: coffin.cliffId?.toString() };
+    return this.findOne(coffin.id.toString());
   }
 
   async findAll(page = 1, pageSize = 10, keyword?: string) {
@@ -41,6 +83,15 @@ export class CoffinService {
             OR: [
               { code: { contains: keyword } },
               { name: { contains: keyword } },
+              { dynasty: { contains: keyword } },
+              { grade: { contains: keyword } },
+              { texture: { contains: keyword } },
+              { tombGroup: { contains: keyword } },
+              { eraSpecific: { contains: keyword } },
+              { materialSpecific: { contains: keyword } },
+              { sourceDetail: { contains: keyword } },
+              { completenessDetail: { contains: keyword } },
+              { description: { contains: keyword } },
             ],
           }
         : {}),
@@ -105,10 +156,56 @@ export class CoffinService {
         texture: dto.texture,
         description: dto.description,
         thumbnail: dto.thumbnail,
+        originalName: dto.originalName,
+        registryType: dto.registryType,
+        tombGroup: dto.tombGroup,
+        eraCategory: dto.eraCategory,
+        eraSpecific: dto.eraSpecific,
+        artifactCategory: dto.artifactCategory,
+        materialCategory: dto.materialCategory,
+        materialSpecific: dto.materialSpecific,
+        weightRange: dto.weightRange,
+        weightValue: dto.weightValue,
+        weightUnit: dto.weightUnit,
+        sourceDetail: dto.sourceDetail,
+        completenessDetail: dto.completenessDetail,
+        preservationStatus: dto.preservationStatus,
+        accessionRange: dto.accessionRange,
+        accessionYear: dto.accessionYear,
+        quantity: dto.quantity,
+        dimText: dto.dimText,
+        mapLeft: dto.mapLeft,
+        mapTop: dto.mapTop,
         status: dto.status,
       },
     });
-    return { ...coffin, id: coffin.id.toString(), cliffId: coffin.cliffId?.toString() };
+    if (dto.images !== undefined) {
+      await this.prisma.bizCoffinImage.deleteMany({ where: { coffinId: BigInt(id) } });
+      if (dto.images.length) {
+        await this.prisma.bizCoffinImage.createMany({
+          data: dto.images.map((img, index) => ({
+            coffinId: BigInt(id),
+            imageUrl: img.imageUrl,
+            imageType: img.imageType || 'ortho',
+            sort: img.sort ?? index,
+          })),
+        });
+      }
+    }
+    if (dto.models !== undefined) {
+      await this.prisma.bizCoffinModel.deleteMany({ where: { coffinId: BigInt(id) } });
+      if (dto.models.length) {
+        await this.prisma.bizCoffinModel.createMany({
+          data: dto.models.map((model) => ({
+            coffinId: BigInt(id),
+            modelUrl: model.modelUrl,
+            format: model.format || 'glb',
+            fileSize: model.fileSize,
+          })),
+        });
+      }
+    }
+    return this.findOne(id);
   }
 
   async remove(id: string) {

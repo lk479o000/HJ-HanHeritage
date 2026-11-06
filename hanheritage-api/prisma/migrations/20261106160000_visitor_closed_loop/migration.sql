@@ -1,0 +1,11 @@
+ALTER TABLE `biz_cliff`
+  ADD COLUMN `map_left` FLOAT NULL,
+  ADD COLUMN `map_top` FLOAT NULL,
+  ADD COLUMN `featured` TINYINT NOT NULL DEFAULT 0,
+  ADD COLUMN `view_count` INT NOT NULL DEFAULT 0;
+
+ALTER TABLE `biz_coffin`
+  ADD COLUMN `view_count` INT NOT NULL DEFAULT 0;
+
+ALTER TABLE `biz_panorama`
+  ADD COLUMN `view_count` INT NOT NULL DEFAULT 0;
