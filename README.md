@@ -6,3 +6,6 @@
 - GPLv3（非商业用途免费）
 - 商业授权：商用需购买，请联系 happylklklk@163.com
 [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)
+
+## 部署
+环境变量、生产构建启动、Nginx 反向代理与健康检查见 [部署手册](doc/06-运维部署/部署手册.md)。
