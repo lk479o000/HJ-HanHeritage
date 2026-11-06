@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
@@ -7,9 +8,13 @@ import {
   Body,
   Param,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { PanoramaService } from './panorama.service';
 import { CreatePanoramaDto } from './dto/create-panorama.dto';
+import { assertUploadedFile, createUploadOptions } from '../../common/upload/upload-policy';
 
 @Controller('panoramas')
 export class PanoramaController {
@@ -20,12 +25,29 @@ export class PanoramaController {
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
     @Query('keyword') keyword?: string,
+    @Query('category') category?: string,
+    @Query('status') status?: string,
   ) {
     return this.panoramaService.findAll(
       page ? parseInt(page, 10) : 1,
       pageSize ? parseInt(pageSize, 10) : 10,
       keyword,
+      category,
+      status,
     );
+  }
+
+  @Post(':id/upload')
+  @UseInterceptors(
+    FileInterceptor('file', createUploadOptions({ subdir: 'panorama', categories: ['panorama'] })),
+  )
+  upload(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('请选择要上传的全景图');
+    }
+    assertUploadedFile(file, 'panorama');
+    const url = `/uploads/panorama/${file.filename}`;
+    return this.panoramaService.uploadFile(id, url, file.size);
   }
 
   @Get(':id')

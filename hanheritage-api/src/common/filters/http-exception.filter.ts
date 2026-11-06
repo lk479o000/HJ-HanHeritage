@@ -33,6 +33,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       message = exception.message;
     }
 
+    if (code === HttpStatus.PAYLOAD_TOO_LARGE) {
+      message = '上传文件大小超过上限，请压缩或拆分后重试';
+    }
+
     response.status(code).json({
       code,
       message,

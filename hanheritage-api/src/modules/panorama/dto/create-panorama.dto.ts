@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsInt } from 'class-validator';
 
 export class CreatePanoramaDto {
   @IsString()
@@ -22,6 +22,10 @@ export class CreatePanoramaDto {
   imageUrl?: string;
 
   @IsOptional()
-  @IsString()
-  status?: string;
+  @IsInt()
+  status?: number;
+
+  @IsOptional()
+  @IsInt()
+  fileSize?: number;
 }

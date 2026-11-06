@@ -6,11 +6,25 @@ import { CreateResourceDto } from './dto/create-resource.dto';
 export class ResourceService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(page = 1, pageSize = 10, keyword?: string, folderId?: string) {
+  async findAll(
+    page = 1,
+    pageSize = 10,
+    keyword?: string,
+    folderId?: string,
+    type?: string,
+  ) {
     const where: Record<string, unknown> = { delFlag: 0 };
-    
+
     if (keyword) {
-      where['name'] = { contains: keyword };
+      where['OR'] = [{ name: { contains: keyword } }, { remark: { contains: keyword } }];
+    }
+    if (folderId && folderId !== '0') {
+      where['parentId'] = BigInt(folderId);
+    } else {
+      where['type'] = { not: 'folder' };
+    }
+    if (type && type !== 'folder') {
+      where['type'] = type;
     }
 
     const [items, total] = await Promise.all([
@@ -77,6 +91,7 @@ export class ResourceService {
         fileUrl: dto.fileUrl,
         fileSize: dto.fileSize ?? 0,
         mimeType: dto.mimeType,
+        remark: dto.remark,
       },
     });
     return { ...resource, id: resource.id.toString(), parentId: resource.parentId?.toString() || '0' };
@@ -103,18 +118,42 @@ export class ResourceService {
         fileUrl: dto.fileUrl,
         fileSize: dto.fileSize,
         mimeType: dto.mimeType,
+        remark: dto.remark,
       },
     });
     return { ...resource, id: resource.id.toString(), parentId: resource.parentId?.toString() || '0' };
   }
 
+  private async collectDescendantIds(id: bigint): Promise<bigint[]> {
+    const children = await this.prisma.bizResource.findMany({
+      where: { parentId: id, delFlag: 0 },
+      select: { id: true },
+    });
+    const nested = await Promise.all(children.map(child => this.collectDescendantIds(child.id)));
+    return [id, ...children.map(child => child.id), ...nested.flat()];
+  }
+
   async remove(id: string) {
     await this.findOne(id);
-    await this.prisma.bizResource.update({
-      where: { id: BigInt(id) },
+    const ids = await this.collectDescendantIds(BigInt(id));
+    await this.prisma.bizResource.updateMany({
+      where: { id: { in: ids } },
       data: { delFlag: 1 },
     });
     return null;
+  }
+
+  async removeBatch(ids: string[]) {
+    const numericIds = ids.map(id => BigInt(id));
+    const allIds: bigint[] = [];
+    for (const id of numericIds) {
+      allIds.push(...(await this.collectDescendantIds(id)));
+    }
+    await this.prisma.bizResource.updateMany({
+      where: { id: { in: [...new Set(allIds.map(item => item.toString()))].map(item => BigInt(item)) } },
+      data: { delFlag: 1 },
+    });
+    return { deleted: allIds.length };
   }
 
   async move(id: string, targetParentId: number) {

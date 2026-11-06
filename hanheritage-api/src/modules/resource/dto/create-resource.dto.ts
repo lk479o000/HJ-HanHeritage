@@ -24,4 +24,8 @@ export class CreateResourceDto {
   @IsOptional()
   @IsString()
   mimeType?: string;
+
+  @IsOptional()
+  @IsString()
+  remark?: string;
 }

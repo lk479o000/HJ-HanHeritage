@@ -14,14 +14,21 @@ export class PanoramaService {
         location: dto.location,
         description: dto.description,
         imageUrl: dto.imageUrl,
-        status: 1,
+        fileSize: dto.fileSize ?? 0,
+        status: dto.status ?? 1,
       },
     });
     return { ...panorama, id: panorama.id.toString() };
   }
 
-  async findAll(page = 1, pageSize = 10, keyword?: string) {
-    const where = {
+  async findAll(
+    page = 1,
+    pageSize = 10,
+    keyword?: string,
+    category?: string,
+    status?: string,
+  ) {
+    const where: any = {
       delFlag: 0,
       ...(keyword
         ? {
@@ -30,6 +37,10 @@ export class PanoramaService {
               { location: { contains: keyword } },
             ],
           }
+        : {}),
+      ...(category ? { category } : {}),
+      ...(status !== undefined && status !== ''
+        ? { status: Number(status) }
         : {}),
     };
 
@@ -83,9 +94,20 @@ export class PanoramaService {
         location: dto.location,
         description: dto.description,
         imageUrl: dto.imageUrl,
+        fileSize: dto.fileSize,
+        status: dto.status,
       },
     });
     return { ...panorama, id: panorama.id.toString() };
+  }
+
+  async uploadFile(id: string, fileUrl: string, fileSize = 0) {
+    await this.findOne(id);
+    const panorama = await this.prisma.bizPanorama.update({
+      where: { id: BigInt(id) },
+      data: { imageUrl: fileUrl, fileSize },
+    });
+    return { id: panorama.id.toString(), url: fileUrl, fileSize };
   }
 
   async remove(id: string) {
