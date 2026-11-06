@@ -63,6 +63,7 @@ const router = createRouter({
         { path: 'online-user', redirect: '/admin/online-users' },
         { path: 'monitor-jvm', name: 'admin-monitor-jvm', component: () => import('@/pages/admin/MonitorJvm.vue') },
         { path: 'monitor-redis', name: 'admin-monitor-redis', component: () => import('@/pages/admin/MonitorRedis.vue') },
+        { path: 'server', name: 'admin-server', component: () => import('@/pages/admin/Server.vue') },
         { path: 'menu', name: 'admin-menu', component: () => import('@/pages/admin/Menu.vue') },
         { path: 'notice', name: 'admin-notice', component: () => import('@/pages/admin/Notice.vue') },
         { path: 'profile', name: 'admin-profile', component: () => import('@/pages/admin/Profile.vue') },

@@ -1,5 +1,5 @@
 import { users, roles, depts, posts, loginLogs, onlineUsers, defaultNotices, defaultMenuTree, CLIFF_BASE } from '@/data/admin-store'
-import { CLIFF_MARKERS, TOMB_MODEL, FALLBACK_IMAGES } from '@/data/cliff-data'
+import { CLIFF_MARKERS, FALLBACK_IMAGES } from '@/data/cliff-data'
 import { COFFIN_TITLES } from '@/data/admin-store'
 
 const isLocalMode = import.meta.env.VITE_LOCAL_MODE === 'true'
@@ -277,7 +277,7 @@ export const mockCoffin = {
         '/prototype/assets/coffin-detail-2.png',
         '/prototype/assets/coffin-detail-3.png',
       ],
-      modelUrl: TOMB_MODEL,
+      modelUrl: '',
     })
   },
 
@@ -360,7 +360,7 @@ export const mockVisitor = {
       ...cliff,
       ...base,
       images: FALLBACK_IMAGES,
-      modelUrl: TOMB_MODEL,
+      modelUrl: '',
     })
   },
 }

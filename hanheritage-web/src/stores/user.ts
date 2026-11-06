@@ -3,6 +3,16 @@ import { ref, computed } from 'vue'
 
 const TOKEN_KEY = 'token'
 const REFRESH_TOKEN_KEY = 'refreshToken'
+const USER_INFO_KEY = 'userInfo'
+
+function readCachedUserInfo(): UserInfo | null {
+  try {
+    const raw = localStorage.getItem(USER_INFO_KEY)
+    return raw ? (JSON.parse(raw) as UserInfo) : null
+  } catch {
+    return null
+  }
+}
 
 export interface UserMenu {
   id: string
@@ -32,9 +42,10 @@ export interface UserInfo {
 
 export const useUserStore = defineStore('user', () => {
   const token = ref(localStorage.getItem(TOKEN_KEY) || '')
-  const userInfo = ref<UserInfo | null>(null)
-  const permissions = ref<string[]>([])
-  const menus = ref<UserMenu[]>([])
+  const cachedInfo = readCachedUserInfo()
+  const userInfo = ref<UserInfo | null>(cachedInfo)
+  const permissions = ref<string[]>(cachedInfo?.permissions || [])
+  const menus = ref<UserMenu[]>(cachedInfo?.menus || [])
 
   function setToken(val: string) {
     token.value = val
@@ -50,6 +61,7 @@ export const useUserStore = defineStore('user', () => {
     userInfo.value = ui
     permissions.value = ui.permissions || []
     menus.value = ui.menus || []
+    localStorage.setItem(USER_INFO_KEY, JSON.stringify(ui))
   }
 
   function displayName() {
@@ -84,6 +96,7 @@ export const useUserStore = defineStore('user', () => {
     menus.value = []
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(REFRESH_TOKEN_KEY)
+    localStorage.removeItem(USER_INFO_KEY)
   }
 
   function isLoggedIn() {

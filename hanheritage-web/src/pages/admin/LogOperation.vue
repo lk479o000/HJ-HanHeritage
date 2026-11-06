@@ -4,7 +4,6 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import {
   getOperationLogs,
   exportOperationLogs,
-  deleteOperationLog,
   deleteOperationLogs,
   clearOperationLogs,
   fmtDate,
@@ -123,21 +122,6 @@ async function clearAllLogs() {
   }
 }
 
-async function deleteLog(id: string) {
-  try {
-    await ElMessageBox.confirm('确定删除该条操作日志？', '提示', { type: 'warning' })
-    await deleteOperationLog(id)
-    ElMessage.success('已删除')
-    if (list.value.length === 1 && currentPage.value > 1) {
-      await fetchList(currentPage.value - 1)
-    } else {
-      await fetchList()
-    }
-  } catch {
-    /* 用户取消 */
-  }
-}
-
 async function exportLogs() {
   try {
     const { items } = await exportOperationLogs({
@@ -220,13 +204,6 @@ onMounted(() => fetchList())
           @selection-change="handleSelectionChange"
         >
           <el-table-column type="selection" width="48" align="center" />
-          <el-table-column
-            type="index"
-            label="序号"
-            width="70"
-            :index="(i: number) => (currentPage - 1) * pageSize + i + 1"
-            align="center"
-          />
           <el-table-column label="时间" width="160" align="center">
             <template #default="{ row }">{{ fmtDate(row.at) }}</template>
           </el-table-column>
@@ -239,13 +216,6 @@ onMounted(() => fetchList())
           </el-table-column>
           <el-table-column prop="detail" label="详情" min-width="200" show-overflow-tooltip align="left" />
           <el-table-column prop="ip" label="终端 IP" width="130" align="left" />
-          <el-table-column label="操作" width="90" fixed="right" align="center">
-            <template #default="{ row }">
-              <div class="admin-table-actions">
-                <button type="button" class="btn btn-danger" @click="deleteLog(row.id)">删除</button>
-              </div>
-            </template>
-          </el-table-column>
         </el-table>
       </div>
 

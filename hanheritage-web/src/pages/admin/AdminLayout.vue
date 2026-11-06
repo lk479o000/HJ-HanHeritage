@@ -1,11 +1,74 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, getCurrentInstance } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { logout, getUserInfo } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
 import { useMenuStore } from '@/stores/menu'
-import { ElTooltip } from 'element-plus'
+import {
+  ElButton,
+  ElCascader,
+  ElCheckbox,
+  ElCheckboxGroup,
+  ElConfigProvider,
+  ElDatePicker,
+  ElDialog,
+  ElForm,
+  ElFormItem,
+  ElInput,
+  ElInputNumber,
+  ElLoading,
+  ElOption,
+  ElPagination,
+  ElPopover,
+  ElProgress,
+  ElRadio,
+  ElRadioGroup,
+  ElSelect,
+  ElTabPane,
+  ElTable,
+  ElTableColumn,
+  ElTabs,
+  ElTooltip,
+  ElTree,
+  ElTreeSelect,
+  ElUpload,
+} from 'element-plus'
+import 'element-plus/dist/index.css'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+
+// 后台页面才使用 Element Plus，注册放在管理布局内，避免游客端加载整库
+const app = getCurrentInstance()?.appContext.app
+for (const component of [
+  ElButton,
+  ElCascader,
+  ElCheckbox,
+  ElCheckboxGroup,
+  ElDatePicker,
+  ElDialog,
+  ElForm,
+  ElFormItem,
+  ElInput,
+  ElInputNumber,
+  ElOption,
+  ElPagination,
+  ElPopover,
+  ElProgress,
+  ElRadio,
+  ElRadioGroup,
+  ElSelect,
+  ElTabPane,
+  ElTable,
+  ElTableColumn,
+  ElTabs,
+  ElTooltip,
+  ElTree,
+  ElTreeSelect,
+  ElUpload,
+]) {
+  app?.use(component)
+}
+app?.use(ElLoading)
 
 interface SidebarMenuGroup {
   group: string
@@ -29,7 +92,7 @@ function getIconComponent(iconName: string) {
 }
 
 async function ensureUserInfo() {
-  if (userStore.isLoggedIn() && !userStore.userInfo) {
+  if (userStore.isLoggedIn()) {
     try {
       const info = await getUserInfo()
       userStore.setUserInfo(info as Record<string, unknown>)
@@ -96,6 +159,7 @@ watch(() => route.path, () => {
 </script>
 
 <template>
+  <ElConfigProvider :locale="zhCn">
   <div class="admin-layout" :class="{ collapsed: sidebarCollapsed }">
     <aside class="admin-sidebar">
       <div class="admin-sidebar-brand">
@@ -208,6 +272,7 @@ watch(() => route.path, () => {
       </main>
     </div>
   </div>
+  </ElConfigProvider>
 </template>
 
 <style scoped lang="scss">

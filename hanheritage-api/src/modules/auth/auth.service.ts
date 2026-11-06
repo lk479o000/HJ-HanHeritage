@@ -93,7 +93,9 @@ export class AuthService {
 
     const menus = user.roles.flatMap((r) => r.role.menus.map((m) => m.menu));
 
-    const uniqueMenus = [...new Map(menus.map((m) => [m.id, m])).values()];
+    const uniqueMenus = [...new Map(menus.map((m) => [m.id, m])).values()].filter(
+      (m) => m.status === 1 && m.delFlag === 0,
+    );
 
     const permissions = [
       ...new Set(uniqueMenus.filter((m) => m.perms).map((m) => m.perms as string)),

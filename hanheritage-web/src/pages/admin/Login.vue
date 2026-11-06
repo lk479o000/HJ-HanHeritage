@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { defaultNotices, scopeText, fmtDate } from '@/data/admin-store'
-import type { Notice } from '@/data/admin-store'
+import { scopeText } from '@/data/admin-store'
+import { getVisitorNotices } from '@/api/visitor'
+import type { VisitorNotice } from '@/api/visitor'
 import { login, getUserInfo } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
@@ -13,10 +14,15 @@ const userStore = useUserStore()
 const username = ref('')
 const password = ref('')
 const loading = ref(false)
-const notices = ref<Notice[]>([])
+const notices = ref<VisitorNotice[]>([])
 
-onMounted(() => {
-  notices.value = defaultNotices.filter(n => n.status === 'published').sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0))
+onMounted(async () => {
+  try {
+    const result = await getVisitorNotices(5)
+    notices.value = result.items
+  } catch {
+    notices.value = []
+  }
 })
 
 async function handleLogin() {
@@ -116,7 +122,7 @@ async function handleLogin() {
           <ul class="sys-login-notice-list">
             <li v-for="n in notices" :key="n.id">
               <div class="sys-nt-title">{{ n.title }}</div>
-              <div class="sys-nt-meta">发布于 {{ fmtDate(n.publishedAt!) }} · {{ scopeText(n.scope) }}</div>
+              <div class="sys-nt-meta">发布于 {{ n.publishedAt ? n.publishedAt.slice(0, 10) : '-' }} · {{ scopeText(n.scope) }}</div>
               <div class="sys-nt-body" v-html="n.contentHtml"></div>
             </li>
           </ul>

@@ -478,7 +478,7 @@ export async function getLoginLogs(query: LoginLogQuery = {}): Promise<PageResul
     let filtered = [...localLoginLogStore]
     const kw = query.keyword?.trim().toLowerCase()
     if (kw) {
-      filtered = filtered.filter(l => l.account.toLowerCase().includes(kw) || l.ip.includes(kw))
+      filtered = filtered.filter(l => l.account.toLowerCase().includes(kw) || l.ip.includes(kw) || l.message.toLowerCase().includes(kw))
     }
     filtered = filtered.sort((a, b) => b.at - a.at)
     return mockRequest({ items: paginate(filtered, page, pageSize), total: filtered.length, page, pageSize })
@@ -566,6 +566,186 @@ export async function forceLogout(id: string): Promise<{ success: boolean }> {
     return mockRequest({ success: true })
   }
   return request.delete(`/monitor/online/${id}`) as Promise<{ success: boolean }>
+}
+
+export interface DashboardSummary {
+  counts: {
+    cliffs: number
+    coffins: number
+    panoramas: number
+    publishedNotices: number
+    users: number
+    onlineUsers: number
+    operationLogs: number
+    loginLogs: number
+    resources: number
+  }
+  notices: Array<{
+    id: string
+    title: string
+    content: string
+    contentHtml: string
+    scope: string
+    publishedAt: string
+  }>
+  resourceStats: Array<{ type: string; count: number }>
+  loginTrend: Array<{ date: string; count: number }>
+  recentOperations: Array<{
+    id: string
+    at: number
+    userDisplay: string
+    module: string
+    action: string
+    detail: string
+    ip: string
+  }>
+  onlineUserList: Array<{
+    id: string
+    name: string
+    dept: string
+    loginAt: number
+    ip: string
+  }>
+  collectedAt: string
+}
+
+export interface DiskInfo {
+  filesystem: string
+  mount: string
+  total: number
+  used: number
+  free: number
+  usagePct: number
+}
+
+export interface ServerInfo {
+  hostname: string
+  platform: string
+  osType: string
+  osRelease: string
+  arch: string
+  ip: string
+  runtime: {
+    name: string
+    version: string
+    startTime: string
+    uptime: number
+    home: string
+    projectPath: string
+    args: string[]
+  }
+  processMemory: {
+    rss: number
+    heapTotal: number
+    heapUsed: number
+  }
+  cpuCount: number
+  cpuModel: string
+  cpuUserPct: number
+  cpuSysPct: number
+  cpuIdlePct: number
+  totalMemory: number
+  usedMemory: number
+  freeMemory: number
+  memoryPct: number
+  uptime: number
+  nodeVersion: string
+  pid: number
+  cwd: string
+  disks: DiskInfo[]
+  nodes: Array<{
+    name: string
+    type: string
+    status: string
+    cpuPct: number
+    memUsed: number
+    memTotal: number
+  }>
+  collectedAt: string
+}
+
+export interface RedisCommandStat {
+  name: string
+  count: number
+  pct: number
+}
+
+export interface RedisInfo {
+  status: 'connected' | 'disconnected'
+  message?: string
+  version?: string
+  mode?: string
+  port?: number
+  clients?: number
+  uptimeSeconds?: number
+  uptimeDays?: number
+  usedMemory?: number
+  usedMemoryHuman?: string
+  maxMemory?: number
+  maxMemoryHuman?: string
+  memoryPct?: number
+  cpuPct?: number
+  aofEnabled?: boolean
+  rdbLastStatus?: string
+  keyCount?: number
+  netInKbps?: number
+  netOutKbps?: number
+  commands?: RedisCommandStat[]
+  collectedAt?: string
+}
+
+export async function getDashboardSummary(): Promise<DashboardSummary> {
+  if (isLocalMode) {
+    return mockRequest({
+      counts: { cliffs: 13, coffins: 28, panoramas: 5, publishedNotices: 1, users: 3, onlineUsers: 1, operationLogs: 10, loginLogs: 8, resources: 8 },
+      notices: [],
+      resourceStats: [],
+      loginTrend: [],
+      recentOperations: [],
+      onlineUserList: [],
+      collectedAt: new Date().toISOString(),
+    })
+  }
+  return request.get('/dashboard/summary') as Promise<DashboardSummary>
+}
+
+export async function getServerInfo(): Promise<ServerInfo> {
+  if (isLocalMode) {
+    return mockRequest({
+      hostname: 'localhost',
+      platform: 'local',
+      osType: 'Local',
+      osRelease: '',
+      arch: '',
+      ip: '127.0.0.1',
+      runtime: { name: 'Mock', version: '', startTime: new Date(0).toISOString(), uptime: 0, home: '', projectPath: '', args: [] },
+      processMemory: { rss: 0, heapTotal: 0, heapUsed: 0 },
+      cpuCount: 1,
+      cpuModel: 'Mock CPU',
+      cpuUserPct: 0,
+      cpuSysPct: 0,
+      cpuIdlePct: 100,
+      totalMemory: 0,
+      usedMemory: 0,
+      freeMemory: 0,
+      memoryPct: 0,
+      uptime: 0,
+      nodeVersion: '',
+      pid: 0,
+      cwd: '',
+      disks: [],
+      nodes: [],
+      collectedAt: new Date().toISOString(),
+    })
+  }
+  return request.get('/monitor/server') as Promise<ServerInfo>
+}
+
+export async function getRedisInfo(): Promise<RedisInfo> {
+  if (isLocalMode) {
+    return mockRequest({ status: 'disconnected', message: '本地模式未连接 Redis' })
+  }
+  return request.get('/monitor/redis') as Promise<RedisInfo>
 }
 
 export type { Role, Post, Dept, MenuItem } from '@/data/admin-store'

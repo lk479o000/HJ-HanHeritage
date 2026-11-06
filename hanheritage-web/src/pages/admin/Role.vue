@@ -205,6 +205,11 @@ function selectPermRole(r: Role) {
   permRole.value = { ...r, permissionIds: [...r.permissionIds] }
 }
 
+function openPermConfig(r: Role) {
+  activeTab.value = 'perms'
+  selectPermRole(r)
+}
+
 function togglePermRolePerm(permId: string) {
   if (!permRole.value) return
   const idx = permRole.value.permissionIds.indexOf(permId)
@@ -284,10 +289,11 @@ onMounted(() => {
               <el-table-column label="权限" width="100" align="right">
                 <template #default="{ row }">{{ row.permissionIds.length }} 项</template>
               </el-table-column>
-              <el-table-column label="操作" width="180" fixed="right" align="center">
+              <el-table-column label="操作" width="250" fixed="right" align="center">
                 <template #default="{ row }">
                   <div class="admin-table-actions">
                     <button type="button" class="btn" @click="openEdit(row)">编辑</button>
+                    <button type="button" class="btn" @click="openPermConfig(row)">配置权限</button>
                     <button type="button" class="btn btn-danger" @click="handleDelete(row.id)">删除</button>
                   </div>
                 </template>

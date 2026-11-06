@@ -27,8 +27,6 @@ export function getCliffById(id: number): CliffMarker | undefined {
   return CLIFF_MARKERS.find((c) => c.id === id)
 }
 
-export const TOMB_MODEL = 'https://modelviewer.dev/shared-assets/models/Astronaut.glb'
-
 export const FALLBACK_IMAGES = [
   '/prototype/assets/pano-museum-indoor-hall.png',
   '/prototype/assets/pano-museum-indoor-coffin.png',

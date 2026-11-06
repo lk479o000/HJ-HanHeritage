@@ -7,9 +7,26 @@ export interface ResourceVo {
   name: string
   type: string
   size: string
+  fileSize: number
   updatedAt: string
   folderId: string
+  fileUrl: string
+  mimeType: string
+  remark: string
   status: string
+}
+
+export interface ResourceNode {
+  id: string
+  name: string
+  type: string
+  parentId: string
+  fileSize: number
+  fileUrl: string
+  mimeType: string
+  remark: string
+  updatedAt: string
+  children?: ResourceNode[]
 }
 
 export interface ResourcePageResult {
@@ -28,20 +45,7 @@ export interface ResourceQuery {
 }
 
 const mockFiles: ResourceVo[] = [
-  { id: 'r1', name: '大耳朵_M1_外景.glb', type: 'model', size: '45.2 MB', updatedAt: '2026-03-15', folderId: 'f1-1-1', status: 'normal' },
-  { id: 'r2', name: '大耳朵_M1_正面.jpg', type: 'image', size: '8.5 MB', updatedAt: '2026-03-15', folderId: 'f1-1-2', status: 'normal' },
-  { id: 'r3', name: '大耳朵_M1_侧面.jpg', type: 'image', size: '7.8 MB', updatedAt: '2026-03-15', folderId: 'f1-1-2', status: 'normal' },
-  { id: 'r4', name: '大耳朵_M1_扫描.obj', type: 'scan', size: '120 MB', updatedAt: '2026-03-10', folderId: 'f1-1-3', status: 'normal' },
-  { id: 'r5', name: '1号棺_整体.glb', type: 'model', size: '38.6 MB', updatedAt: '2026-02-20', folderId: 'f2-1-1', status: 'normal' },
-  { id: 'r6', name: '1号棺_正面.jpg', type: 'image', size: '6.2 MB', updatedAt: '2026-02-20', folderId: 'f2-1-2', status: 'normal' },
-  { id: 'r7', name: '1号棺_登记表.pdf', type: 'doc', size: '1.2 MB', updatedAt: '2026-02-18', folderId: 'f2-1-3', status: 'normal' },
-  { id: 'r8', name: '2号棺_整体.glb', type: 'model', size: '42.1 MB', updatedAt: '2026-02-15', folderId: 'f2-2-1', status: 'normal' },
-  { id: 'r9', name: '博物馆大厅_全景.jpg', type: 'image', size: '15.3 MB', updatedAt: '2026-01-28', folderId: 'f3-3', status: 'normal' },
-  { id: 'r10', name: '航拍_大耳朵_全景.jpg', type: 'image', size: '22.1 MB', updatedAt: '2026-01-25', folderId: 'f3-1', status: 'normal' },
-  { id: 'r11', name: '点云_M1.las', type: 'pointcloud', size: '350 MB', updatedAt: '2026-01-10', folderId: 'f1-1-3', status: 'normal' },
-  { id: 'r12', name: '保护规划报告.pdf', type: 'doc', size: '5.8 MB', updatedAt: '2025-12-20', folderId: 'f4-1', status: 'normal' },
-  { id: 'r13', name: '展厅导览视频.mp4', type: 'video', size: '180 MB', updatedAt: '2025-12-15', folderId: 'f4-2', status: 'normal' },
-  { id: 'r14', name: '成果数据包.zip', type: 'deliverable', size: '2.1 GB', updatedAt: '2025-12-10', folderId: 'f4-2', status: 'normal' },
+  { id: 'r1', name: '大耳朵_M1_外景.glb', type: 'model', size: '45.2 MB', fileSize: 47400000, updatedAt: '2026-03-15', folderId: 'f1-1-1', fileUrl: '', mimeType: 'model/gltf-binary', remark: '三维模型', status: 'normal' },
 ]
 
 let localStore = [...mockFiles]
@@ -52,7 +56,7 @@ function paginate<T>(list: T[], page: number, pageSize: number) {
 }
 
 function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B'
+  if (!bytes) return '0 B'
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
   const i = Math.floor(Math.log(bytes) / Math.log(1024))
   const size = bytes / Math.pow(1024, i)
@@ -61,12 +65,16 @@ function formatFileSize(bytes: number): string {
 
 function transformResourceFromApi(r: any): ResourceVo {
   return {
-    id: r.id,
+    id: String(r.id),
     name: r.name,
     type: r.type || '',
-    size: r.fileSize ? formatFileSize(r.fileSize) : '',
+    size: r.fileSize ? formatFileSize(r.fileSize) : '—',
+    fileSize: r.fileSize || 0,
     updatedAt: r.updatedAt ? r.updatedAt.slice(0, 10) : '',
-    folderId: r.parentId != null ? String(r.parentId) : '',
+    folderId: r.parentId != null ? String(r.parentId) : '0',
+    fileUrl: r.fileUrl || '',
+    mimeType: r.mimeType || '',
+    remark: r.remark || '',
     status: 'normal',
   }
 }
@@ -78,7 +86,7 @@ export async function getResourceList(query: ResourceQuery = {}): Promise<Resour
     let filtered = [...localStore]
     const kw = query.keyword?.trim().toLowerCase()
     if (kw) {
-      filtered = filtered.filter(f => f.name.toLowerCase().includes(kw))
+      filtered = filtered.filter(f => f.name.toLowerCase().includes(kw) || f.remark.toLowerCase().includes(kw))
     }
     if (query.type) {
       filtered = filtered.filter(f => f.type === query.type)
@@ -93,6 +101,20 @@ export async function getResourceList(query: ResourceQuery = {}): Promise<Resour
   return { ...res, items }
 }
 
+export async function getResourceTree(): Promise<ResourceNode[]> {
+  if (isLocalMode) {
+    return mockRequest([
+      {
+        id: 'f1', name: '崖墓群数据', type: 'folder', parentId: '0', fileSize: 0, fileUrl: '', mimeType: '', remark: '', updatedAt: '',
+        children: [
+          { id: 'f1-1', name: '大耳朵崖墓群', type: 'folder', parentId: 'f1', fileSize: 0, fileUrl: '', mimeType: '', remark: '', updatedAt: '', children: [] },
+        ],
+      },
+    ])
+  }
+  return request.get('/resources/tree') as Promise<ResourceNode[]>
+}
+
 export async function deleteResource(id: string): Promise<{ deleted: number }> {
   if (isLocalMode) {
     localStore = localStore.filter(f => f.id !== id)
@@ -101,15 +123,85 @@ export async function deleteResource(id: string): Promise<{ deleted: number }> {
   return request.delete(`/resources/${id}`) as Promise<{ deleted: number }>
 }
 
-export async function uploadResourceFile(file: File, folderId: string, type: string): Promise<ResourceVo> {
+export async function deleteResources(ids: string[]): Promise<{ deleted: number }> {
+  if (isLocalMode) {
+    localStore = localStore.filter(f => !ids.includes(f.id))
+    return mockRequest({ deleted: ids.length })
+  }
+  return request.delete('/resources/batch', { data: { ids } }) as Promise<{ deleted: number }>
+}
+
+export async function createResource(payload: {
+  name: string
+  type: string
+  parentId?: number
+  fileUrl?: string
+  fileSize?: number
+  mimeType?: string
+  remark?: string
+}): Promise<ResourceVo> {
+  if (isLocalMode) {
+    const newResource: ResourceVo = {
+      id: 'r' + Date.now(),
+      name: payload.name,
+      type: payload.type,
+      size: formatFileSize(payload.fileSize || 0),
+      fileSize: payload.fileSize || 0,
+      updatedAt: new Date().toISOString().slice(0, 10),
+      folderId: String(payload.parentId || '0'),
+      fileUrl: payload.fileUrl || '',
+      mimeType: payload.mimeType || '',
+      remark: payload.remark || '',
+      status: 'normal',
+    }
+    localStore.push(newResource)
+    return mockRequest(newResource)
+  }
+  const res = await request.post('/resources', payload)
+  return transformResourceFromApi(res)
+}
+
+export async function updateResource(id: string, payload: {
+  name?: string
+  type?: string
+  parentId?: number
+  fileUrl?: string
+  fileSize?: number
+  mimeType?: string
+  remark?: string
+}): Promise<ResourceVo> {
+  if (isLocalMode) {
+    const target = localStore.find(f => f.id === id)
+    if (target) Object.assign(target, payload, { name: payload.name ?? target.name, remark: payload.remark ?? target.remark })
+    return mockRequest(target as ResourceVo)
+  }
+  const res = await request.put(`/resources/${id}`, payload)
+  return transformResourceFromApi(res)
+}
+
+export async function moveResource(id: string, targetParentId: number): Promise<ResourceVo> {
+  if (isLocalMode) {
+    const target = localStore.find(f => f.id === id)
+    if (target) target.folderId = String(targetParentId)
+    return mockRequest(target as ResourceVo)
+  }
+  const res = await request.put(`/resources/${id}/move`, { targetParentId })
+  return transformResourceFromApi(res)
+}
+
+export async function uploadResourceFile(file: File, folderId: string, type: string, remark = ''): Promise<ResourceVo> {
   if (isLocalMode) {
     const newResource: ResourceVo = {
       id: 'r' + Date.now(),
       name: file.name,
       type,
       size: formatFileSize(file.size),
+      fileSize: file.size,
       updatedAt: new Date().toISOString().slice(0, 10),
       folderId,
+      fileUrl: '',
+      mimeType: file.type,
+      remark,
       status: 'normal',
     }
     localStore.push(newResource)
@@ -119,6 +211,7 @@ export async function uploadResourceFile(file: File, folderId: string, type: str
   formData.append('file', file)
   formData.append('folderId', folderId)
   formData.append('type', type)
+  if (remark) formData.append('remark', remark)
   const res = await request.post('/resources/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })

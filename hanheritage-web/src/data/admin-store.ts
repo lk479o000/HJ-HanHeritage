@@ -323,6 +323,8 @@ export const COFFIN_REGISTRY_FIELDS = [
   { key: 'preservationStatus', label: '保存状态' },
   { key: 'accessionRange', label: '入藏时间范围' },
   { key: 'accessionYear', label: '入藏年度' },
+  { key: 'mapLeft', label: '地图点位 X（%）' },
+  { key: 'mapTop', label: '地图点位 Y（%）' },
 ]
 
 export const EDIT_SECTIONS = [
@@ -334,6 +336,7 @@ export const EDIT_SECTIONS = [
   { title: '级别与来源', keys: ['relicGrade', 'sourceType', 'sourceDetail'] },
   { title: '完残与保存', keys: ['completeness', 'completenessDetail', 'preservationStatus'] },
   { title: '入藏信息', keys: ['accessionRange', 'accessionYear'] },
+  { title: '地图点位', keys: ['mapLeft', 'mapTop'] },
 ]
 
 export const COFFIN_TITLES = [
@@ -414,6 +417,7 @@ export const PANO_CATEGORIES = [
   { key: 'air', label: '空中' },
   { key: 'ground', label: '地面' },
   { key: 'inner', label: '内部' },
+  { key: 'outdoor', label: '室外' },
 ]
 
 export function getDeptName(id: string): string {

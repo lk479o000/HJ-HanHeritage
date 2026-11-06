@@ -299,13 +299,6 @@ onMounted(() => fetchList())
           row-key="id"
           empty-text="无匹配记录"
         >
-          <el-table-column
-            type="index"
-            label="序号"
-            width="70"
-            :index="(i: number) => (currentPage - 1) * pageSize + i + 1"
-            align="center"
-          />
           <el-table-column prop="title" label="标题" min-width="180" show-overflow-tooltip align="left" />
           <el-table-column label="状态" width="90" align="center">
             <template #default="{ row }">

@@ -2,6 +2,20 @@ import request from '@/utils/request'
 import { mockRequest, isLocalMode } from '@/utils/mock'
 import { COFFIN_TITLES, COFFIN_REGISTRY_FIELDS, EDIT_SECTIONS } from '@/data/admin-store'
 
+export interface CoffinImageVo {
+  id?: string
+  imageUrl: string
+  imageType?: string
+  sort?: number
+}
+
+export interface CoffinModelVo {
+  id?: string
+  modelUrl: string
+  format?: string
+  fileSize?: number
+}
+
 export interface CoffinVo {
   id: string
   title: string
@@ -22,6 +36,12 @@ export interface CoffinVo {
   completeness: string
   preservationStatus: string
   sourceType: string
+  coverUrl?: string
+  viewCount?: number
+  mapLeft?: string
+  mapTop?: string
+  images?: CoffinImageVo[]
+  models?: CoffinModelVo[]
   [key: string]: any
 }
 
@@ -96,26 +116,59 @@ function parseDimensions(dimensions: string): { dimLength: string; dimWidth: str
 
 function transformCoffinFromApi(c: any): CoffinVo {
   const dims = parseDimensions(c.dimensions || '')
+  const images = Array.isArray(c.images) ? c.images : []
+  const cover = images.find((img: any) => img.imageType === 'ortho') || images[0]
   return {
     id: c.id,
     title: c.name || '',
+    coverUrl: cover?.imageUrl || '',
+    originalName: c.originalName || c.name || '',
     registryType: c.registryType || '石棺',
     collectionId: c.code || '',
     code: c.code || '',
     tombGroup: c.tombGroup || '',
     eraCategory: c.eraCategory || '',
     dynasty: c.dynasty || '',
+    eraSpecific: c.eraSpecific || '',
     artifactCategory: c.artifactCategory || '',
     textureType: c.texture || '',
     materialCategory: c.materialCategory || c.texture || '',
+    materialSpecific: c.materialSpecific || '',
     quantity: c.quantity ?? 1,
     dimLength: dims.dimLength,
     dimWidth: dims.dimWidth,
     dimHeight: dims.dimHeight,
+    dimText: c.dimText || '',
+    weightRange: c.weightRange || '',
+    weightValue: c.weightValue || '',
+    weightUnit: c.weightUnit || '',
     relicGrade: c.grade || '',
     completeness: c.completeness || '',
+    completenessDetail: c.completenessDetail || '',
     preservationStatus: c.preservationStatus || '',
     sourceType: c.source || '',
+    sourceDetail: c.sourceDetail || '',
+    accessionRange: c.accessionRange || '',
+    accessionYear: c.accessionYear || '',
+    viewCount: c.viewCount ?? 0,
+    mapLeft: c.mapLeft != null ? String(c.mapLeft) : '',
+    mapTop: c.mapTop != null ? String(c.mapTop) : '',
+    images: Array.isArray(c.images)
+      ? c.images.map((img: any) => ({
+          id: String(img.id),
+          imageUrl: img.imageUrl,
+          imageType: img.imageType || 'photo',
+          sort: img.sort ?? 0,
+        }))
+      : [],
+    models: Array.isArray(c.models)
+      ? c.models.map((model: any) => ({
+          id: String(model.id),
+          modelUrl: model.modelUrl,
+          format: model.format || 'glb',
+          fileSize: model.fileSize ?? 0,
+        }))
+      : [],
   }
 }
 
@@ -129,6 +182,31 @@ function transformCoffinToApi(data: Partial<CoffinVo>): any {
   if (data.completeness !== undefined) payload.completeness = data.completeness
   if (data.dynasty !== undefined) payload.dynasty = data.dynasty
   if (data.registryType !== undefined) payload.registryType = data.registryType
+  const passthroughKeys = [
+    'originalName', 'tombGroup', 'eraCategory', 'eraSpecific', 'artifactCategory',
+    'materialCategory', 'materialSpecific', 'weightRange', 'weightValue', 'weightUnit',
+    'sourceDetail', 'completenessDetail', 'preservationStatus', 'accessionRange',
+    'accessionYear', 'quantity', 'dimText',
+  ]
+  passthroughKeys.forEach(key => {
+    if (data[key] !== undefined) payload[key] = data[key]
+  })
+  if (data.mapLeft !== undefined) payload.mapLeft = data.mapLeft === '' ? null : Number(data.mapLeft)
+  if (data.mapTop !== undefined) payload.mapTop = data.mapTop === '' ? null : Number(data.mapTop)
+  if (data.images !== undefined) {
+    payload.images = data.images.map((img, index) => ({
+      imageUrl: img.imageUrl,
+      imageType: img.imageType || 'photo',
+      sort: img.sort ?? index,
+    }))
+  }
+  if (data.models !== undefined) {
+    payload.models = data.models.map(model => ({
+      modelUrl: model.modelUrl,
+      format: model.format || 'glb',
+      fileSize: model.fileSize ?? 0,
+    }))
+  }
   if (data.dimLength !== undefined || data.dimWidth !== undefined || data.dimHeight !== undefined) {
     const l = data.dimLength || ''
     const w = data.dimWidth || ''

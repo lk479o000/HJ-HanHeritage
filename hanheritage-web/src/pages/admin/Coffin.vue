@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import {
   getCoffinList,
   getCoffinDetail,
+  createCoffin,
   updateCoffin,
   deleteCoffin,
   COFFIN_REGISTRY_FIELDS,
@@ -11,7 +12,8 @@ import {
   type CoffinVo,
   type CoffinQuery,
 } from '@/api/coffin'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { uploadResourceFile } from '@/api/resource'
+import { ElImageViewer, ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance } from 'element-plus'
 
 const loading = ref(false)
@@ -23,6 +25,7 @@ const appliedKeyword = ref('')
 
 const currentPage = ref(1)
 const currentPageSize = ref(10)
+const viewMode = ref<'card' | 'table'>('card')
 
 function buildQueryParams(page = currentPage.value, pageSize = currentPageSize.value): CoffinQuery {
   return {
@@ -75,6 +78,31 @@ function handleSizeChange(size: number) {
 const showView = ref(false)
 const viewItem = ref<CoffinVo | null>(null)
 
+const imagePreviewVisible = ref(false)
+const imagePreviewUrls = ref<string[]>([])
+const imagePreviewIndex = ref(0)
+
+function openImagePreview(urls: (string | undefined)[], index = 0) {
+  const list = urls.filter((url): url is string => !!url)
+  if (!list.length) return
+  imagePreviewUrls.value = list
+  imagePreviewIndex.value = index
+  imagePreviewVisible.value = true
+}
+
+const viewModelUrl = computed(() => viewItem.value?.models?.[0]?.modelUrl || '')
+const modelViewerReady = ref(false)
+
+async function ensureModelViewer() {
+  if (modelViewerReady.value) return
+  try {
+    await import('@google/model-viewer')
+    modelViewerReady.value = true
+  } catch {
+    /* 本地依赖不可用时保留占位提示 */
+  }
+}
+
 async function viewCoffin(c: CoffinVo) {
   try {
     const detail = await getCoffinDetail(c.id)
@@ -84,26 +112,203 @@ async function viewCoffin(c: CoffinVo) {
     viewItem.value = c
     showView.value = true
   }
+  if (viewModelUrl.value) ensureModelViewer()
 }
 
 const showEdit = ref(false)
 const editItem = ref<CoffinVo | null>(null)
 const formRef = ref<FormInstance>()
+const isCreating = ref(false)
+
+function defaultCoffin(): CoffinVo {
+  return {
+    id: '',
+    title: '',
+    originalName: '',
+    registryType: '石棺',
+    collectionId: '',
+    code: '',
+    tombGroup: '',
+    eraCategory: '历史年代',
+    dynasty: '东汉',
+    eraSpecific: '',
+    artifactCategory: '石刻',
+    textureType: '石',
+    materialCategory: '',
+    materialSpecific: '',
+    quantity: 1,
+    dimLength: '',
+    dimWidth: '',
+    dimHeight: '',
+    dimText: '',
+    weightRange: '',
+    weightValue: '',
+    weightUnit: 'kg',
+    relicGrade: '未定级',
+    completeness: '',
+    completenessDetail: '',
+    preservationStatus: '',
+    sourceType: '',
+    sourceDetail: '',
+    accessionRange: '',
+    accessionYear: '',
+    images: [],
+    models: [],
+  }
+}
+
+function addCoffin() {
+  isCreating.value = true
+  editItem.value = defaultCoffin()
+  showEdit.value = true
+}
 
 function editCoffin(c: CoffinVo) {
-  editItem.value = { ...c }
+  isCreating.value = false
+  editItem.value = {
+    ...c,
+    images: (c.images || []).map(img => ({ ...img })),
+    models: (c.models || []).map(model => ({ ...model })),
+  }
   showEdit.value = true
+}
+
+function formatSize(bytes?: number) {
+  if (!bytes) return '—'
+  const units = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(1024))
+  return (bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1) + ' ' + units[i]
+}
+
+const imageUploading = ref(false)
+const modelUploading = ref(false)
+
+async function uploadCoffinImage(file: any) {
+  const raw: File | undefined = file?.raw
+  if (!raw || !editItem.value) return
+  if (!raw.type.startsWith('image/')) {
+    ElMessage.warning('请选择图片文件')
+    return
+  }
+  imageUploading.value = true
+  try {
+    const res = await uploadResourceFile(raw, 'coffin-images', 'image')
+    const url = res?.fileUrl || ''
+    if (!url) {
+      ElMessage.error('上传返回地址为空')
+      return
+    }
+    const images = editItem.value.images ? [...editItem.value.images] : []
+    images.push({ imageUrl: url, imageType: 'photo', sort: images.length })
+    editItem.value.images = images
+    ElMessage.success('图片已上传，保存后生效')
+  } catch {
+    ElMessage.error('图片上传失败')
+  } finally {
+    imageUploading.value = false
+  }
+}
+
+function moveCoffinImage(index: number, delta: number) {
+  const images = editItem.value?.images ? [...editItem.value.images] : []
+  const target = index + delta
+  if (target < 0 || target >= images.length) return
+  const [item] = images.splice(index, 1)
+  images.splice(target, 0, item)
+  editItem.value!.images = images.map((img, i) => ({ ...img, sort: i }))
+}
+
+function removeCoffinImage(index: number) {
+  const images = editItem.value?.images ? [...editItem.value.images] : []
+  images.splice(index, 1)
+  editItem.value!.images = images.map((img, i) => ({ ...img, sort: i }))
+}
+
+async function uploadCoffinModel(file: any) {
+  const raw: File | undefined = file?.raw
+  if (!raw || !editItem.value) return
+  const suffix = raw.name.split('.').pop()?.toLowerCase() || ''
+  if (suffix !== 'glb' && suffix !== 'gltf') {
+    ElMessage.warning('请选择 .glb 或 .gltf 模型文件')
+    return
+  }
+  modelUploading.value = true
+  try {
+    const res = await uploadResourceFile(raw, 'coffin-models', 'model')
+    const url = res?.fileUrl || ''
+    if (!url) {
+      ElMessage.error('上传返回地址为空')
+      return
+    }
+    const models = editItem.value.models ? [...editItem.value.models] : []
+    models.push({ modelUrl: url, format: suffix, fileSize: raw.size })
+    editItem.value.models = models
+    ElMessage.success('模型已上传，保存后生效')
+  } catch {
+    ElMessage.error('模型上传失败')
+  } finally {
+    modelUploading.value = false
+  }
+}
+
+function removeCoffinModel(index: number) {
+  const models = editItem.value?.models ? [...editItem.value.models] : []
+  models.splice(index, 1)
+  editItem.value!.models = models
 }
 
 async function saveCoffin() {
   if (!editItem.value) return
+  if (!editItem.value.title?.trim()) {
+    ElMessage.warning('请输入石棺名称')
+    return
+  }
   try {
-    await updateCoffin(editItem.value.id, { ...editItem.value })
-    ElMessage.success('保存成功')
+    const payload = { ...editItem.value }
+    if (isCreating.value) {
+      payload.collectionId = payload.collectionId?.trim() || `HJ-SG-${Date.now().toString().slice(-6)}`
+      payload.code = payload.collectionId
+      await createCoffin(payload)
+      ElMessage.success('新增成功')
+    } else {
+      await updateCoffin(payload.id, payload)
+      ElMessage.success('保存成功')
+    }
     showEdit.value = false
     await fetchList()
   } catch {
     /* 请求失败已由拦截器提示 */
+  }
+}
+
+async function exportCoffins() {
+  try {
+    const res = await getCoffinList({ page: 1, pageSize: 1000, keyword: appliedKeyword.value.trim() || undefined })
+    const headers = ['藏品编号', '名称', '所属崖墓群', '年代', '质地', '文物级别', '完残程度', '保存状态', '来源', '入藏年度']
+    const rows = res.items.map(item => [
+      item.collectionId,
+      item.title,
+      item.tombGroup || '',
+      item.dynasty || '',
+      item.textureType || '',
+      item.relicGrade || '',
+      item.completeness || '',
+      item.preservationStatus || '',
+      item.sourceType || '',
+      item.accessionYear || '',
+    ])
+    const csv = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n')
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `石棺台账_${new Date().toISOString().slice(0, 10)}.csv`
+    anchor.click()
+    URL.revokeObjectURL(url)
+  } catch {
+    ElMessage.error('导出失败')
   }
 }
 
@@ -136,16 +341,55 @@ onMounted(() => fetchList())
       <div class="admin-toolbar">
         <el-input
           v-model="draftKeyword"
-          placeholder="搜索石棺名称 / 藏品编号"
+          placeholder="模糊查询：名称、编号、崖墓群、朝代、年代、质地、级别、来源、完残、简介…"
           clearable
           class="toolbar-search"
           @keyup.enter="onSearch"
         />
         <button type="button" class="btn btn-primary" @click="onSearch">查询</button>
         <button type="button" class="btn" @click="onReset">重置</button>
+        <button type="button" class="btn" @click="addCoffin">新增石棺</button>
+        <button type="button" class="btn" @click="exportCoffins">导出</button>
+        <div class="view-toggle" role="group" aria-label="视图切换">
+          <button type="button" :class="{ 'is-active': viewMode === 'card' }" @click="viewMode = 'card'">卡片</button>
+          <button type="button" :class="{ 'is-active': viewMode === 'table' }" @click="viewMode = 'table'">表格</button>
+        </div>
       </div>
 
-      <div class="admin-table-wrap" v-loading="loading">
+      <div v-if="viewMode === 'card'" class="coffin-grid" v-loading="loading">
+        <article v-for="row in list" :key="row.id" class="coffin-card">
+          <div class="coffin-card-thumb-wrap">
+            <img
+              v-if="row.coverUrl"
+              :src="row.coverUrl"
+              class="coffin-card-thumb"
+              loading="lazy"
+              alt="石棺封面"
+              title="点击放大"
+              @click="openImagePreview([row.coverUrl])"
+            />
+            <div v-else class="coffin-card-thumb coffin-card-thumb--ph">暂无封面</div>
+          </div>
+          <div class="coffin-card-body">
+            <div class="coffin-card-code">{{ row.collectionId || '—' }}</div>
+            <div class="coffin-card-title" :title="row.title">{{ row.title }}</div>
+            <div class="coffin-card-tags">
+              <span v-if="row.tombGroup" class="coffin-card-tag">{{ row.tombGroup }}</span>
+              <span v-if="row.dynasty" class="coffin-card-tag">{{ row.dynasty }}</span>
+              <span v-if="row.textureType" class="coffin-card-tag">{{ row.textureType }}</span>
+              <span :class="['action-tag', relicGradeClass(row.relicGrade)]">{{ row.relicGrade || '未定级' }}</span>
+            </div>
+            <div class="coffin-card-actions">
+              <button type="button" class="btn btn-primary" @click="viewCoffin(row)">查看</button>
+              <button type="button" class="btn" @click="editCoffin(row)">编辑</button>
+              <button type="button" class="btn btn-danger" @click="handleDelete(row.id)">删除</button>
+            </div>
+          </div>
+        </article>
+        <p v-if="!loading && !list.length" class="coffin-grid-empty">无匹配记录</p>
+      </div>
+
+      <div v-else class="admin-table-wrap" v-loading="loading">
         <el-table
           :data="list"
           border
@@ -160,15 +404,34 @@ onMounted(() => fetchList())
             :index="(i: number) => (currentPage - 1) * currentPageSize + i + 1"
             align="center"
           />
-          <el-table-column prop="title" label="名称" min-width="200" show-overflow-tooltip align="left" />
+          <el-table-column label="封面" width="84" align="center">
+            <template #default="{ row }">
+              <img
+                v-if="row.coverUrl"
+                :src="row.coverUrl"
+                class="table-cover"
+                loading="lazy"
+                alt="石棺封面"
+                title="点击放大"
+                @click="openImagePreview([row.coverUrl])"
+              />
+              <span v-else class="table-cover-ph">—</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="title" label="名称" min-width="180" show-overflow-tooltip align="left" />
           <el-table-column prop="collectionId" label="藏品编号" width="150" align="left" />
+          <el-table-column prop="tombGroup" label="所属崖墓群" min-width="160" show-overflow-tooltip align="left">
+            <template #default="{ row }">{{ row.tombGroup || '—' }}</template>
+          </el-table-column>
           <el-table-column prop="dynasty" label="朝代" width="90" align="center" />
+          <el-table-column prop="textureType" label="质地" width="90" align="center" />
           <el-table-column prop="relicGrade" label="文物级别" width="110" align="center">
             <template #default="{ row }">
               <span :class="['action-tag', relicGradeClass(row.relicGrade)]">{{ row.relicGrade }}</span>
             </template>
           </el-table-column>
           <el-table-column prop="completeness" label="完残程度" width="110" align="center" />
+          <el-table-column prop="viewCount" label="浏览量" width="90" align="center" />
           <el-table-column label="操作" width="200" fixed="right" align="center">
             <template #default="{ row }">
               <div class="admin-table-actions">
@@ -196,12 +459,36 @@ onMounted(() => fetchList())
     <el-dialog v-model="showView" :title="viewItem?.title || ''" width="800px" destroy-on-close>
       <div class="coffin-view" v-if="viewItem">
         <div class="coffin-view__model">
-          <div class="model-placeholder">
+          <model-viewer
+            v-if="viewModelUrl && modelViewerReady"
+            :src="viewModelUrl"
+            class="coffin-view-model"
+            camera-controls
+            touch-action="pan-y"
+            shadow-intensity="1"
+            environment-image="neutral"
+            alt="石棺三维模型"
+          ></model-viewer>
+          <div v-else-if="viewModelUrl" class="model-placeholder">
+            <p>三维模型加载中…</p>
+          </div>
+          <div v-else class="model-placeholder">
             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
             </svg>
-            <p>3D 模型预览</p>
+            <p>该石棺暂无三维模型</p>
           </div>
+        </div>
+        <div v-if="viewItem.images?.length" class="coffin-view__images">
+          <img
+            v-for="(img, i) in viewItem.images"
+            :key="img.id || img.imageUrl"
+            :src="img.imageUrl"
+            class="coffin-view-img"
+            alt="石棺成果图"
+            title="点击放大"
+            @click="openImagePreview((viewItem.images || []).map(item => item.imageUrl), i)"
+          />
         </div>
         <div class="coffin-view__fields">
           <div v-for="f in COFFIN_REGISTRY_FIELDS" :key="f.key" class="cv-field">
@@ -212,7 +499,7 @@ onMounted(() => fetchList())
       </div>
     </el-dialog>
 
-    <el-dialog v-model="showEdit" title="编辑石棺" width="720px" destroy-on-close>
+    <el-dialog v-model="showEdit" :title="isCreating ? '新增石棺' : '编辑石棺'" width="760px" destroy-on-close>
       <el-form
         v-if="editItem"
         ref="formRef"
@@ -229,12 +516,62 @@ onMounted(() => fetchList())
             </el-form-item>
           </div>
         </div>
+
+        <div class="ce-section">
+          <h4>石棺成果图（顺序即游客端展示顺序）</h4>
+          <div v-if="editItem.images?.length" class="coffin-media-list">
+            <div v-for="(img, i) in editItem.images" :key="img.id || img.imageUrl" class="coffin-media-item">
+              <img
+                :src="img.imageUrl"
+                class="coffin-media-thumb"
+                alt="石棺成果图"
+                title="点击放大"
+                @click="openImagePreview((editItem.images || []).map(item => item.imageUrl), i)"
+              />
+              <span class="coffin-media-url" :title="img.imageUrl">{{ img.imageUrl }}</span>
+              <button type="button" class="btn" :disabled="i === 0" @click="moveCoffinImage(i, -1)">上移</button>
+              <button type="button" class="btn" :disabled="i === (editItem.images?.length || 0) - 1" @click="moveCoffinImage(i, 1)">下移</button>
+              <button type="button" class="btn btn-danger" @click="removeCoffinImage(i)">移除</button>
+            </div>
+          </div>
+          <p v-else class="coffin-media-empty">暂无成果图，游客端将使用兜底图或空态</p>
+          <el-upload :auto-upload="false" :show-file-list="false" accept="image/*" :on-change="uploadCoffinImage">
+            <button type="button" class="btn" :disabled="imageUploading">
+              {{ imageUploading ? '上传中…' : '上传成果图' }}
+            </button>
+          </el-upload>
+        </div>
+
+        <div class="ce-section">
+          <h4>石棺三维模型</h4>
+          <div v-if="editItem.models?.length" class="coffin-media-list">
+            <div v-for="(model, i) in editItem.models" :key="model.id || model.modelUrl" class="coffin-media-item">
+              <span class="coffin-media-url" :title="model.modelUrl">{{ model.modelUrl }}</span>
+              <span class="coffin-media-meta">{{ model.format || 'glb' }} · {{ formatSize(model.fileSize) }}</span>
+              <button type="button" class="btn btn-danger" @click="removeCoffinModel(i)">移除</button>
+            </div>
+          </div>
+          <p v-else class="coffin-media-empty">暂无模型，游客端显示「模型待补充」</p>
+          <el-upload :auto-upload="false" :show-file-list="false" accept=".glb,.gltf" :on-change="uploadCoffinModel">
+            <button type="button" class="btn" :disabled="modelUploading">
+              {{ modelUploading ? '上传中…' : '上传模型（.glb/.gltf）' }}
+            </button>
+          </el-upload>
+        </div>
       </el-form>
       <template #footer>
         <el-button @click="showEdit = false">取消</el-button>
         <el-button type="primary" @click="saveCoffin">保存</el-button>
       </template>
     </el-dialog>
+
+    <ElImageViewer
+      v-if="imagePreviewVisible"
+      :url-list="imagePreviewUrls"
+      :initial-index="imagePreviewIndex"
+      hide-on-click-modal
+      @close="imagePreviewVisible = false"
+    />
   </div>
 </template>
 
@@ -264,6 +601,149 @@ onMounted(() => fetchList())
 
 .toolbar-search {
   width: 260px;
+}
+
+.view-toggle {
+  display: inline-flex;
+  margin-left: auto;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  overflow: hidden;
+
+  button {
+    min-height: 36px;
+    padding: 0 14px;
+    border: 0;
+    background: #fff;
+    color: var(--admin-text);
+    font-size: 0.86rem;
+    cursor: pointer;
+    font-family: inherit;
+
+    & + button {
+      border-left: 1px solid var(--admin-border);
+    }
+
+    &.is-active {
+      background: var(--admin-primary);
+      color: #fff;
+    }
+  }
+}
+
+.coffin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  padding: 16px;
+  min-height: 120px;
+}
+
+.coffin-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  transition: box-shadow 0.15s ease;
+
+  &:hover {
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+  }
+}
+
+.coffin-card-thumb-wrap {
+  aspect-ratio: 4 / 3;
+  background: #f1f5f9;
+}
+
+.coffin-card-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  cursor: zoom-in;
+}
+
+.coffin-card-thumb--ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 0.82rem;
+  letter-spacing: 1px;
+}
+
+.coffin-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+}
+
+.coffin-card-code {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.coffin-card-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--admin-text);
+}
+
+.coffin-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.coffin-card-tag {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.78rem;
+}
+
+.coffin-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+
+  .btn {
+    flex: 1;
+    min-height: 32px;
+    padding: 0 8px;
+    font-size: 0.82rem;
+  }
+}
+
+.coffin-grid-empty {
+  grid-column: 1 / -1;
+  margin: 24px 0;
+  text-align: center;
+  color: var(--admin-muted);
+  font-size: 0.86rem;
+}
+
+.table-cover {
+  display: block;
+  width: 56px;
+  height: 40px;
+  margin: 0 auto;
+  border-radius: 4px;
+  object-fit: cover;
+  cursor: zoom-in;
+}
+
+.table-cover-ph {
+  color: #94a3b8;
 }
 
 .btn {
@@ -436,11 +916,32 @@ onMounted(() => fetchList())
     justify-content: center;
   }
 
+  .coffin-view-model {
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+  }
+
   .model-placeholder {
     text-align: center;
     color: #64748b;
 
     p { margin: 8px 0 0; font-size: 0.88rem; }
+  }
+
+  .coffin-view__images {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .coffin-view-img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: 8px;
+    object-fit: cover;
+    cursor: zoom-in;
   }
 
   .coffin-view__fields {
@@ -501,6 +1002,60 @@ onMounted(() => fetchList())
     grid-template-columns: 1fr 1fr;
     gap: 10px 20px;
   }
+}
+
+.coffin-media-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.coffin-media-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  background: #fafbfc;
+
+  .btn {
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 0.82rem;
+  }
+}
+
+.coffin-media-thumb {
+  width: 64px;
+  height: 48px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+  cursor: zoom-in;
+}
+
+.coffin-media-url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  color: var(--admin-text);
+}
+
+.coffin-media-meta {
+  font-size: 0.78rem;
+  color: var(--admin-muted);
+  white-space: nowrap;
+}
+
+.coffin-media-empty {
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+  color: var(--admin-muted);
 }
 
 :deep(.el-dialog) {

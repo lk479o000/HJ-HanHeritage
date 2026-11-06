@@ -8,6 +8,9 @@ export interface PanoramaVo {
   category: string
   status: string
   description: string
+  imageUrl?: string
+  fileSize?: number
+  createdAt?: string
 }
 
 export interface PanoramaPageResult {
@@ -26,7 +29,7 @@ export interface PanoramaQuery {
 }
 
 const mockScenes: PanoramaVo[] = [
-  { id: 'p1', name: '博物馆大厅', category: 'inner', status: 'published', description: '博物馆一层大厅全景' },
+  { id: 'p1', name: '博物馆大厅', category: 'inner', status: 'published', description: '博物馆一层大厅全景', fileSize: 830000, createdAt: '2026-04-03 10:00:00' },
   { id: 'p2', name: '展厅A', category: 'inner', status: 'published', description: '汉代画像石棺展厅' },
   { id: 'p3', name: '展厅B', category: 'inner', status: 'draft', description: '崖墓文化展厅' },
   { id: 'p4', name: '大耳朵崖墓群·航拍', category: 'air', status: 'published', description: '大耳朵崖墓群鸟瞰全景' },
@@ -47,11 +50,14 @@ function paginate<T>(list: T[], page: number, pageSize: number) {
 
 function transformPanoramaFromApi(p: any): PanoramaVo {
   return {
-    id: p.id,
+    id: String(p.id),
     name: p.name,
     category: p.category || '',
     status: p.status === 1 ? 'published' : 'draft',
     description: p.description || '',
+    imageUrl: p.imageUrl || '',
+    fileSize: p.fileSize || 0,
+    createdAt: p.createdAt || '',
   }
 }
 

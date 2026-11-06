@@ -3,7 +3,6 @@ import { ref, watch, onMounted } from 'vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import {
   getLoginLogs,
-  deleteLoginLog,
   deleteLoginLogs,
   clearLoginLogs,
   exportLoginLogs,
@@ -103,21 +102,6 @@ async function clearAllLogs() {
   }
 }
 
-async function deleteLog(id: string) {
-  try {
-    await ElMessageBox.confirm('确定删除该条登录日志？', '提示', { type: 'warning' })
-    await deleteLoginLog(id)
-    ElMessage.success('已删除')
-    if (list.value.length === 1 && currentPage.value > 1) {
-      await fetchList(currentPage.value - 1)
-    } else {
-      await fetchList()
-    }
-  } catch {
-    /* 用户取消 */
-  }
-}
-
 async function exportLogs() {
   try {
     const { items } = await exportLoginLogs()
@@ -169,7 +153,7 @@ onMounted(() => fetchList())
       <div class="admin-toolbar">
         <el-input
           v-model="draftKeyword"
-          placeholder="搜索账号 / IP"
+          placeholder="搜索账号 / IP / 说明"
           clearable
           class="toolbar-search"
           @keyup.enter="onSearch"
@@ -192,13 +176,6 @@ onMounted(() => fetchList())
           @selection-change="handleSelectionChange"
         >
           <el-table-column type="selection" width="48" align="center" />
-          <el-table-column
-            type="index"
-            label="序号"
-            width="70"
-            :index="(i: number) => (currentPage - 1) * pageSize + i + 1"
-            align="center"
-          />
           <el-table-column label="时间" width="160" align="center">
             <template #default="{ row }">{{ fmtDate(row.at) }}</template>
           </el-table-column>
@@ -209,14 +186,7 @@ onMounted(() => fetchList())
               <span :class="['action-tag', row.result === '成功' ? 'action-success' : 'action-danger']">{{ row.result }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="message" label="消息" min-width="140" show-overflow-tooltip align="left" />
-          <el-table-column label="操作" width="90" fixed="right" align="center">
-            <template #default="{ row }">
-              <div class="admin-table-actions">
-                <button type="button" class="btn btn-danger" @click="deleteLog(row.id)">删除</button>
-              </div>
-            </template>
-          </el-table-column>
+          <el-table-column prop="message" label="说明" min-width="140" show-overflow-tooltip align="left" />
         </el-table>
       </div>
 

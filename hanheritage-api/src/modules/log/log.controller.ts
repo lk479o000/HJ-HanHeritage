@@ -17,13 +17,19 @@ export class LogController {
   findLoginLogs(
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
+    @Query('keyword') keyword?: string,
     @Query('username') username?: string,
   ) {
     return this.logService.findLoginLogs(
       page ? parseInt(page, 10) : 1,
       pageSize ? parseInt(pageSize, 10) : 10,
-      username,
+      keyword || username,
     );
+  }
+
+  @Get('login/export')
+  exportLoginLogs(@Query('keyword') keyword?: string) {
+    return this.logService.exportLoginLogs(keyword);
   }
 
   /** @deprecated 兼容旧路径，请使用 GET /logs/operations */

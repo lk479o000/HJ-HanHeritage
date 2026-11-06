@@ -21,6 +21,7 @@ export interface OperationLogVo {
 }
 
 const MODULE_URL_RULES: Array<{ pattern: RegExp; label: string }> = [
+  { pattern: /\/visitor/i, label: '游客端' },
   { pattern: /\/cliffs?/i, label: '崖墓管理' },
   { pattern: /\/coffins?/i, label: '石棺管理' },
   { pattern: /\/users/i, label: '用户管理' },
@@ -99,9 +100,17 @@ export class LogService {
     return where;
   }
 
-  async findLoginLogs(page = 1, pageSize = 10, username?: string) {
+  async findLoginLogs(page = 1, pageSize = 10, keyword?: string) {
     const where = {
-      ...(username ? { username: { contains: username } } : {}),
+      ...(keyword
+        ? {
+            OR: [
+              { username: { contains: keyword } },
+              { ip: { contains: keyword } },
+              { failReason: { contains: keyword } },
+            ],
+          }
+        : {}),
     };
 
     const [items, total] = await Promise.all([
@@ -123,6 +132,33 @@ export class LogService {
       total,
       page,
       pageSize,
+    };
+  }
+
+  async exportLoginLogs(keyword?: string) {
+    const where = keyword
+      ? {
+          OR: [
+            { username: { contains: keyword } },
+            { ip: { contains: keyword } },
+            { failReason: { contains: keyword } },
+          ],
+        }
+      : {};
+
+    const items = await this.prisma.logLogin.findMany({
+      where,
+      orderBy: { loginTime: 'desc' },
+      take: 5000,
+    });
+
+    return {
+      items: items.map((l) => ({
+        ...l,
+        id: l.id.toString(),
+        loginTime: l.loginTime.toISOString(),
+      })),
+      total: items.length,
     };
   }
 

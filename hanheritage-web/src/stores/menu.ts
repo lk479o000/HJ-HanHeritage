@@ -135,9 +135,10 @@ export const useMenuStore = defineStore('menu', () => {
     const groups: SidebarMenuGroup[] = []
 
     tree.forEach((menu) => {
+      if (menu.status === 0) return
       if (menu.children && menu.children.length > 0) {
         const items = menu.children
-          .filter((child: any) => child.linkId || child.path)
+          .filter((child: any) => child.status !== 0 && (child.linkId || child.path))
           .map((child: any) => {
             const linkId = child.linkId || (child.path ? child.path.replace(/^\/admin\//, '') : '')
             return {

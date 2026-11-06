@@ -1,82 +1,128 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import {
   getResourceList,
+  getResourceTree,
   deleteResource,
+  deleteResources,
+  createResource,
+  updateResource,
   uploadResourceFile,
   RESOURCE_TYPE_OPTIONS,
+  type ResourceNode,
   type ResourceVo,
   type ResourceQuery,
 } from '@/api/resource'
-import { ElMessage, ElMessageBox } from 'element-plus'
-
-interface ResNode {
-  id: string
-  label: string
-  children?: ResNode[]
-}
-
-const treeData = ref<ResNode[]>([
-  {
-    id: 'f1', label: '崖墓群数据',
-    children: [
-      { id: 'f1-1', label: '大耳朵崖墓群', children: [
-        { id: 'f1-1-1', label: '三维模型' },
-        { id: 'f1-1-2', label: '平面影像' },
-        { id: 'f1-1-3', label: '扫描数据' },
-      ]},
-      { id: 'f1-2', label: '洞溪崖墓群', children: [
-        { id: 'f1-2-1', label: '三维模型' },
-        { id: 'f1-2-2', label: '平面影像' },
-      ]},
-    ],
-  },
-  {
-    id: 'f2', label: '石棺数据',
-    children: [
-      { id: 'f2-1', label: '1号棺', children: [
-        { id: 'f2-1-1', label: '三维模型' },
-        { id: 'f2-1-2', label: '平面影像' },
-        { id: 'f2-1-3', label: '数字文档' },
-      ]},
-      { id: 'f2-2', label: '2号棺', children: [
-        { id: 'f2-2-1', label: '三维模型' },
-        { id: 'f2-2-2', label: '平面影像' },
-      ]},
-    ],
-  },
-  {
-    id: 'f3', label: '全景数据',
-    children: [
-      { id: 'f3-1', label: '空中全景' },
-      { id: 'f3-2', label: '地面全景' },
-      { id: 'f3-3', label: '内部全景' },
-    ],
-  },
-  {
-    id: 'f4', label: '成果数据',
-    children: [
-      { id: 'f4-1', label: '报告文档' },
-      { id: 'f4-2', label: '图纸数据' },
-    ],
-  },
-])
-
-const defaultProps = { children: 'children', label: 'label' }
 
 const loading = ref(false)
+const treeLoading = ref(false)
 const list = ref<ResourceVo[]>([])
 const total = ref(0)
+const treeRaw = ref<ResourceNode[]>([])
+const selectedRows = ref<ResourceVo[]>([])
 
+const currentFolderId = ref('')
 const draftKeyword = ref('')
 const draftType = ref('')
 const appliedKeyword = ref('')
 const appliedType = ref('')
-const appliedFolderId = ref('')
 
 const currentPage = ref(1)
 const pageSize = ref(10)
+
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const uploadVisible = ref(false)
+const uploadForm = reactive({ folderId: '', type: '', remark: '', file: null as File | null })
+const uploadProgress = ref(0)
+const isUploading = ref(false)
+
+const editVisible = ref(false)
+const editForm = reactive({ id: '', name: '', type: 'doc', remark: '' })
+
+const folderVisible = ref(false)
+const folderForm = reactive({ mode: 'create' as 'create' | 'rename', id: '', parentId: '', name: '' })
+
+const previewVisible = ref(false)
+const previewRow = ref<ResourceVo | null>(null)
+
+const folderTree = computed(() => toFolderTree(treeRaw.value))
+
+function toFolderTree(nodes: ResourceNode[]): ResourceNode[] {
+  return nodes
+    .filter(node => node.type === 'folder')
+    .map(node => ({
+      ...node,
+      children: toFolderTree(node.children || []),
+    }))
+}
+
+const flatFolders = computed(() => {
+  const result: Array<{ id: string; name: string; level: number }> = []
+  const walk = (nodes: ResourceNode[], level: number) => {
+    nodes.forEach(node => {
+      result.push({ id: node.id, name: node.name, level })
+      walk(node.children || [], level + 1)
+    })
+  }
+  walk(folderTree.value, 1)
+  return result
+})
+
+const stats = computed(() => {
+  let count = 0
+  let bytes = 0
+  const walk = (nodes: ResourceNode[]) => {
+    nodes.forEach(node => {
+      if (node.type !== 'folder') {
+        count += 1
+        bytes += node.fileSize || 0
+      }
+      walk(node.children || [])
+    })
+  }
+  walk(treeRaw.value)
+  return { count, bytes, folderCount: list.value.length }
+})
+
+const previewExt = computed(() => extOf(previewRow.value?.name || ''))
+const previewType = computed(() => {
+  const ext = previewExt.value
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) return 'image'
+  if (['mp4', 'webm', 'ogg'].includes(ext)) return 'video'
+  if (ext === 'pdf') return 'pdf'
+  if (['glb', 'gltf'].includes(ext)) return 'model'
+  return 'other'
+})
+
+const modelViewerReady = ref(false)
+
+async function ensureModelViewer() {
+  if (modelViewerReady.value) return
+  try {
+    await import('@google/model-viewer')
+    modelViewerReady.value = true
+  } catch {
+    /* 本地依赖不可用时保持提示 */
+  }
+}
+
+function extOf(name: string) {
+  const index = name.lastIndexOf('.')
+  return index >= 0 ? name.slice(index + 1).toLowerCase() : ''
+}
+
+function formatBytes(bytes: number) {
+  if (!bytes) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(1024))
+  return `${(bytes / 1024 ** i).toFixed(i === 0 ? 0 : 1)} ${units[i]}`
+}
+
+function typeLabel(type: string) {
+  return RESOURCE_TYPE_OPTIONS.find(option => option.value === type)?.label || type
+}
 
 function buildQueryParams(page = currentPage.value): ResourceQuery {
   return {
@@ -84,7 +130,7 @@ function buildQueryParams(page = currentPage.value): ResourceQuery {
     pageSize: pageSize.value,
     keyword: appliedKeyword.value.trim() || undefined,
     type: appliedType.value || undefined,
-    folderId: appliedFolderId.value || undefined,
+    folderId: currentFolderId.value || undefined,
   }
 }
 
@@ -103,8 +149,25 @@ async function fetchList(page = currentPage.value) {
   }
 }
 
-function handleNodeClick(data: ResNode) {
-  appliedFolderId.value = data.id
+async function fetchTree() {
+  treeLoading.value = true
+  try {
+    treeRaw.value = await getResourceTree()
+  } catch {
+    treeRaw.value = []
+  } finally {
+    treeLoading.value = false
+  }
+}
+
+function handleNodeClick(data: ResourceNode) {
+  currentFolderId.value = data.id
+  currentPage.value = 1
+  fetchList(1)
+}
+
+function selectAllResources() {
+  currentFolderId.value = ''
   currentPage.value = 1
   fetchList(1)
 }
@@ -121,141 +184,277 @@ function onClearFilter() {
   draftType.value = ''
   appliedKeyword.value = ''
   appliedType.value = ''
-  appliedFolderId.value = ''
   currentPage.value = 1
   fetchList(1)
 }
 
-function handleSizeChange(size: number) {
-  pageSize.value = size
+function handleSizeChange() {
   currentPage.value = 1
   fetchList(1)
 }
 
-function typeTagClass(type: string) {
-  const map: Record<string, string> = {
-    model: 'action-primary',
-    image: 'action-success',
-    scan: 'action-warning',
-    pointcloud: 'action-info',
-    doc: 'action-doc',
-    video: 'action-danger',
-    deliverable: 'action-deliverable',
-  }
-  return map[type] || 'action-info'
+function handleSelectionChange(rows: ResourceVo[]) {
+  selectedRows.value = rows
 }
 
-function typeLabel(type: string) {
-  return RESOURCE_TYPE_OPTIONS.find(o => o.value === type)?.label || type
-}
-
-async function handleDelete(id: string) {
+async function handleDelete(row: ResourceVo) {
   try {
-    await ElMessageBox.confirm('确定删除该资源？', '提示', { type: 'warning' })
-    await deleteResource(id)
+    await ElMessageBox.confirm(`确定删除「${row.name}」吗？`, '删除确认', { type: 'warning' })
+    await deleteResource(row.id)
     ElMessage.success('已删除')
-    if (list.value.length === 1 && currentPage.value > 1) {
-      await fetchList(currentPage.value - 1)
-    } else {
-      await fetchList()
-    }
+    await Promise.all([fetchList(currentPage.value), fetchTree()])
   } catch {
     /* 用户取消 */
   }
 }
 
-const showUpload = ref(false)
-const selectedFile = ref<File | null>(null)
-const uploadProgress = ref(0)
-const isUploading = ref(false)
-const uploadFolderId = ref('')
-const uploadType = ref('')
-
-const fileInputRef = ref<HTMLInputElement | null>(null)
-
-function handleFileSelect(event: Event) {
-  const target = event.target as HTMLInputElement
-  const files = target.files
-  if (files && files.length > 0) {
-    selectedFile.value = files[0]
+async function handleBatchDelete() {
+  if (!selectedRows.value.length) {
+    ElMessage.warning('请先勾选要删除的资源')
+    return
   }
+  try {
+    await ElMessageBox.confirm(`确定删除选中的 ${selectedRows.value.length} 项资源吗？`, '批量删除', { type: 'warning' })
+    await deleteResources(selectedRows.value.map(row => row.id))
+    ElMessage.success('已批量删除')
+    await Promise.all([fetchList(1), fetchTree()])
+  } catch {
+    /* 用户取消 */
+  }
+}
+
+function openUpload() {
+  uploadForm.folderId = currentFolderId.value
+  uploadForm.type = ''
+  uploadForm.remark = ''
+  uploadForm.file = null
+  uploadProgress.value = 0
+  uploadVisible.value = true
 }
 
 function triggerFileInput() {
   fileInputRef.value?.click()
 }
 
+function handleFileSelect(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0] || null
+  uploadForm.file = file
+  if (file && !uploadForm.type) {
+    const ext = extOf(file.name)
+    if (['glb', 'gltf', 'obj'].includes(ext)) uploadForm.type = 'model'
+    else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) uploadForm.type = 'image'
+    else if (['mp4', 'webm'].includes(ext)) uploadForm.type = 'video'
+    else if (['pdf', 'doc', 'docx', 'txt'].includes(ext)) uploadForm.type = 'doc'
+    else if (['las', 'laz'].includes(ext)) uploadForm.type = 'pointcloud'
+  }
+}
+
 async function handleUpload() {
-  if (!uploadFolderId.value) {
-    ElMessage.warning('请选择目标目录')
-    return
-  }
-  if (!uploadType.value) {
-    ElMessage.warning('请选择资源类型')
-    return
-  }
-  if (!selectedFile.value) {
+  if (!uploadForm.file) {
     ElMessage.warning('请选择文件')
     return
   }
-  
+  if (!uploadForm.type) {
+    ElMessage.warning('请选择资源类型')
+    return
+  }
   isUploading.value = true
-  uploadProgress.value = 0
-  
+  uploadProgress.value = 30
   try {
-    await uploadResourceFile(selectedFile.value, uploadFolderId.value, uploadType.value)
+    await uploadResourceFile(uploadForm.file, uploadForm.folderId, uploadForm.type, uploadForm.remark)
     uploadProgress.value = 100
-    
     ElMessage.success('上传成功')
-    showUpload.value = false
-    selectedFile.value = null
-    uploadFolderId.value = ''
-    uploadType.value = ''
-    uploadProgress.value = 0
-    await fetchList(1)
+    uploadVisible.value = false
+    await Promise.all([fetchList(1), fetchTree()])
   } catch {
     /* 请求失败已由拦截器提示 */
   } finally {
     isUploading.value = false
+    uploadProgress.value = 0
   }
+}
+
+function openEdit(row: ResourceVo) {
+  editForm.id = row.id
+  editForm.name = row.name
+  editForm.type = row.type
+  editForm.remark = row.remark
+  editVisible.value = true
+}
+
+async function handleEditSave() {
+  if (!editForm.name.trim()) {
+    ElMessage.warning('请输入资源名称')
+    return
+  }
+  try {
+    await updateResource(editForm.id, {
+      name: editForm.name.trim(),
+      type: editForm.type,
+      remark: editForm.remark,
+    })
+    ElMessage.success('已保存')
+    editVisible.value = false
+    await Promise.all([fetchList(currentPage.value), fetchTree()])
+  } catch {
+    /* 请求失败已由拦截器提示 */
+  }
+}
+
+function openFolderCreate(parentId = '') {
+  folderForm.mode = 'create'
+  folderForm.id = ''
+  folderForm.parentId = parentId
+  folderForm.name = ''
+  folderVisible.value = true
+}
+
+function openFolderRename(node: ResourceNode) {
+  folderForm.mode = 'rename'
+  folderForm.id = node.id
+  folderForm.name = node.name
+  folderVisible.value = true
+}
+
+async function handleFolderSave() {
+  const name = folderForm.name.trim()
+  if (!name) {
+    ElMessage.warning('请输入目录名称')
+    return
+  }
+  try {
+    if (folderForm.mode === 'create') {
+      await createResource({
+        name,
+        type: 'folder',
+        parentId: folderForm.parentId ? Number(folderForm.parentId) : 0,
+      })
+      ElMessage.success('已新建目录')
+    } else {
+      await updateResource(folderForm.id, { name })
+      ElMessage.success('已重命名')
+    }
+    folderVisible.value = false
+    await fetchTree()
+  } catch {
+    /* 请求失败已由拦截器提示 */
+  }
+}
+
+async function handleFolderDelete(node: ResourceNode) {
+  try {
+    await ElMessageBox.confirm(`删除目录「${node.name}」会同时删除其下资源，确定继续吗？`, '删除目录', { type: 'warning' })
+    await deleteResource(node.id)
+    ElMessage.success('已删除目录')
+    if (currentFolderId.value === node.id) currentFolderId.value = ''
+    await Promise.all([fetchTree(), fetchList(1)])
+  } catch {
+    /* 用户取消 */
+  }
+}
+
+function openPreview(row: ResourceVo) {
+  previewRow.value = row
+  previewVisible.value = true
+  const ext = extOf(row.name)
+  if (['glb', 'gltf'].includes(ext)) ensureModelViewer()
+}
+
+function downloadRow(row: ResourceVo) {
+  if (!row.fileUrl) {
+    ElMessage.warning('该资源暂无可用下载地址')
+    return
+  }
+  const anchor = document.createElement('a')
+  anchor.href = row.fileUrl
+  anchor.download = row.name
+  anchor.target = '_blank'
+  anchor.rel = 'noopener'
+  document.body.appendChild(anchor)
+  anchor.click()
+  document.body.removeChild(anchor)
+}
+
+function canPreview(row: ResourceVo) {
+  return ['image', 'video', 'pdf'].includes(extOf(row.name)) && !!row.fileUrl
 }
 
 watch(currentPage, (page, prev) => {
   if (page !== prev) fetchList(page)
 })
 
-onMounted(() => fetchList())
+onMounted(() => {
+  fetchTree()
+  fetchList()
+})
 </script>
 
 <template>
   <div class="resource-page">
     <AdminPageHeader title="资源管理" :crumbs="['首页', '业务数据', '资源管理']" />
+    <p class="resource-page-desc">
+      多类型资源统一入库，支持目录管理、上传、下载、在线预览、编辑、批量删除与查询统计。
+    </p>
+
     <div class="res-layout">
-      <div class="res-tree-card">
+      <aside class="res-tree-card">
         <div class="res-tree-header">
-          <h3>目录结构</h3>
+          <h3>资源目录</h3>
+          <button type="button" class="btn btn-primary" @click="openFolderCreate()">新建根目录</button>
         </div>
-        <div class="res-tree-body">
-          <el-tree :data="treeData" :props="defaultProps" node-key="id" highlight-current @node-click="handleNodeClick" default-expand-all />
+        <div class="res-tree-body" v-loading="treeLoading">
+          <button type="button" class="res-tree-all" :class="{ 'is-active': !currentFolderId }" @click="selectAllResources">
+            全部资源
+          </button>
+          <el-tree
+            :data="folderTree"
+            :props="{ children: 'children', label: 'name' }"
+            node-key="id"
+            highlight-current
+            default-expand-all
+            :expand-on-click-node="false"
+            @node-click="handleNodeClick"
+          >
+            <template #default="{ node, data }">
+              <div class="res-tree-node-row">
+                <span class="res-tree-label">{{ data.name }}</span>
+                <span class="res-tree-actions" @click.stop>
+                  <button v-if="node.level < 3" type="button" class="res-tree-act" title="新建子目录" @click="openFolderCreate(data.id)">+</button>
+                  <button type="button" class="res-tree-act" title="重命名" @click="openFolderRename(data)">改</button>
+                  <button type="button" class="res-tree-act" title="删除" @click="handleFolderDelete(data)">删</button>
+                </span>
+              </div>
+            </template>
+          </el-tree>
+          <div v-if="!folderTree.length" class="res-tree-empty">暂无目录，点击上方新建</div>
         </div>
-      </div>
+      </aside>
 
       <div class="res-main">
+        <div class="res-stats-bar">
+          <span class="res-stat-pill">资源总数 <strong>{{ stats.count }}</strong></span>
+          <span class="res-stat-pill">总占用 <strong>{{ formatBytes(stats.bytes) }}</strong></span>
+          <span class="res-stat-pill">当前目录条目 <strong>{{ stats.folderCount }}</strong></span>
+        </div>
+        <p class="res-breadcrumb">当前位置：<strong>{{ currentFolderId ? (flatFolders.find(f => f.id === currentFolderId)?.name || '—') : '全部资源' }}</strong></p>
+
         <div class="admin-toolbar">
+          <button type="button" class="btn btn-primary" @click="openUpload">上传</button>
+          <button type="button" class="btn" @click="handleBatchDelete">批量删除</button>
+          <div class="toolbar-spacer"></div>
           <el-select v-model="draftType" placeholder="资源类型" clearable class="toolbar-type">
             <el-option v-for="t in RESOURCE_TYPE_OPTIONS.filter(o => o.value)" :key="t.value" :label="t.label" :value="t.value" />
           </el-select>
           <el-input
             v-model="draftKeyword"
-            placeholder="搜索文件名"
+            placeholder="名称 / 说明关键字"
             clearable
             class="toolbar-search"
             @keyup.enter="onSearch"
           />
           <button type="button" class="btn btn-primary" @click="onSearch">查询</button>
-          <button type="button" class="btn" @click="onClearFilter">清除筛选</button>
-          <div class="toolbar-spacer"></div>
-          <button type="button" class="btn btn-primary" @click="showUpload = true">上传资源</button>
+          <button type="button" class="btn" @click="onClearFilter">重置条件</button>
         </div>
 
         <div class="admin-table-wrap" v-loading="loading">
@@ -264,27 +463,31 @@ onMounted(() => fetchList())
             border
             class="admin-el-table"
             row-key="id"
-            empty-text="无匹配记录"
+            empty-text="当前目录无资源或无匹配查询结果"
+            @selection-change="handleSelectionChange"
           >
-            <el-table-column
-              type="index"
-              label="序号"
-              width="70"
-              :index="(i: number) => (currentPage - 1) * pageSize + i + 1"
-              align="center"
-            />
-            <el-table-column prop="name" label="文件名" min-width="220" align="left" show-overflow-tooltip />
-            <el-table-column label="类型" width="110" align="center">
+            <el-table-column type="selection" width="44" align="center" />
+            <el-table-column prop="name" label="名称" min-width="200" align="left" show-overflow-tooltip />
+            <el-table-column label="资源类型" width="110" align="center">
               <template #default="{ row }">
-                <span :class="['action-tag', typeTagClass(row.type)]">{{ typeLabel(row.type) }}</span>
+                <span class="res-type-tag">{{ typeLabel(row.type) }}</span>
               </template>
+            </el-table-column>
+            <el-table-column label="格式" width="80" align="center">
+              <template #default="{ row }">{{ extOf(row.name).toUpperCase() || '—' }}</template>
             </el-table-column>
             <el-table-column prop="size" label="大小" width="100" align="right" />
             <el-table-column prop="updatedAt" label="更新时间" width="120" align="center" />
-            <el-table-column label="操作" width="90" fixed="right" align="center">
+            <el-table-column prop="remark" label="说明" min-width="140" align="left" show-overflow-tooltip>
+              <template #default="{ row }">{{ row.remark || '—' }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="220" fixed="right" align="center">
               <template #default="{ row }">
                 <div class="admin-table-actions">
-                  <button type="button" class="btn btn-danger" @click="handleDelete(row.id)">删除</button>
+                  <button type="button" class="btn btn-ghost" :disabled="!canPreview(row)" @click="openPreview(row)">浏览</button>
+                  <button type="button" class="btn btn-ghost" @click="downloadRow(row)">下载</button>
+                  <button type="button" class="btn btn-ghost" @click="openEdit(row)">编辑</button>
+                  <button type="button" class="btn btn-danger" @click="handleDelete(row)">删除</button>
                 </div>
               </template>
             </el-table-column>
@@ -304,42 +507,95 @@ onMounted(() => fetchList())
       </div>
     </div>
 
-    <el-dialog v-model="showUpload" title="上传资源" width="520px" destroy-on-close>
-      <el-form label-width="100px">
-        <input
-          ref="fileInputRef"
-          type="file"
-          class="hidden-file-input"
-          @change="handleFileSelect"
-        />
+    <el-dialog v-model="uploadVisible" title="上传资源" width="520px" destroy-on-close>
+      <el-form label-width="90px">
+        <input ref="fileInputRef" type="file" class="hidden-file-input" @change="handleFileSelect" />
         <el-form-item label="目标目录">
-          <el-select v-model="uploadFolderId" placeholder="选择目录" style="width: 100%">
-            <el-option label="崖墓群数据 / 大耳朵 / 三维模型" value="f1-1-1" />
-            <el-option label="崖墓群数据 / 大耳朵 / 平面影像" value="f1-1-2" />
-            <el-option label="石棺数据 / 1号棺 / 三维模型" value="f2-1-1" />
+          <el-select v-model="uploadForm.folderId" placeholder="根目录" clearable style="width: 100%">
+            <el-option v-for="folder in flatFolders" :key="folder.id" :label="folder.name" :value="folder.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="资源类型">
-          <el-select v-model="uploadType" style="width: 100%">
+          <el-select v-model="uploadForm.type" placeholder="请选择" style="width: 100%">
             <el-option v-for="t in RESOURCE_TYPE_OPTIONS.filter(o => o.value)" :key="t.value" :label="t.label" :value="t.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="选择文件">
-          <el-button @click="triggerFileInput" :disabled="isUploading">
-            {{ selectedFile ? selectedFile.name : '选择文件' }}
+          <el-button :disabled="isUploading" @click="triggerFileInput">
+            {{ uploadForm.file ? uploadForm.file.name : '选择文件' }}
           </el-button>
-          <span v-if="selectedFile" style="margin-left: 8px; color: #64748b; font-size: 0.82rem">
-            {{ selectedFile.size > 1024 * 1024 ? (selectedFile.size / (1024 * 1024)).toFixed(1) + ' MB' : (selectedFile.size / 1024).toFixed(0) + ' KB' }}
-          </span>
-          <span v-else style="margin-left: 8px; color: #64748b; font-size: 0.82rem">支持 GLB/OBJ/JPG/PDF/LAS/MP4 等格式</span>
+          <span class="res-upload-hint">支持 GLB/OBJ/JPG/PDF/LAS/MP4 等格式</span>
+        </el-form-item>
+        <el-form-item label="说明">
+          <el-input v-model="uploadForm.remark" type="textarea" :rows="2" placeholder="可选" />
         </el-form-item>
         <el-form-item v-if="isUploading">
           <el-progress :percentage="uploadProgress" :show-text="true" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showUpload = false" :disabled="isUploading">取消</el-button>
-        <el-button type="primary" @click="handleUpload" :disabled="isUploading">上传</el-button>
+        <el-button :disabled="isUploading" @click="uploadVisible = false">取消</el-button>
+        <el-button type="primary" :disabled="isUploading" @click="handleUpload">上传</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="editVisible" title="编辑资源" width="480px" destroy-on-close>
+      <el-form label-width="90px">
+        <el-form-item label="名称">
+          <el-input v-model="editForm.name" />
+        </el-form-item>
+        <el-form-item label="资源类型">
+          <el-select v-model="editForm.type" style="width: 100%">
+            <el-option v-for="t in RESOURCE_TYPE_OPTIONS.filter(o => o.value)" :key="t.value" :label="t.label" :value="t.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="说明">
+          <el-input v-model="editForm.remark" type="textarea" :rows="2" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleEditSave">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="folderVisible" :title="folderForm.mode === 'create' ? '新建目录' : '重命名目录'" width="420px" destroy-on-close>
+      <el-form label-width="80px">
+        <el-form-item label="目录名称">
+          <el-input v-model="folderForm.name" placeholder="请输入目录名称" @keyup.enter="handleFolderSave" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="folderVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleFolderSave">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="previewVisible" :title="`预览 · ${previewRow?.name || ''}`" width="860px" destroy-on-close>
+      <div v-if="previewRow" class="res-preview-host">
+        <img v-if="previewType === 'image'" :src="previewRow.fileUrl" alt="" class="res-preview-img" />
+        <video v-else-if="previewType === 'video'" :src="previewRow.fileUrl" controls playsinline class="res-preview-video"></video>
+        <iframe v-else-if="previewType === 'pdf'" :src="previewRow.fileUrl" title="PDF" class="res-preview-frame"></iframe>
+        <model-viewer
+          v-else-if="previewType === 'model' && modelViewerReady"
+          :src="previewRow.fileUrl"
+          camera-controls
+          touch-action="pan-y"
+          shadow-intensity="1"
+          environment-image="neutral"
+          class="res-preview-model"
+          alt="三维模型预览"
+        ></model-viewer>
+        <div v-else-if="previewType === 'model'" class="res-preview-fallback">
+          <p>三维模型加载中…</p>
+        </div>
+        <div v-else class="res-preview-fallback">
+          <p><strong>{{ previewRow.name }}</strong></p>
+          <p>当前格式（.{{ previewExt || '—' }}）暂无在线预览，请使用「下载」查看。</p>
+        </div>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="previewVisible = false">关闭</el-button>
       </template>
     </el-dialog>
   </div>
@@ -349,7 +605,13 @@ onMounted(() => fetchList())
 .resource-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+}
+
+.resource-page-desc {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--admin-muted);
 }
 
 .res-layout {
@@ -363,329 +625,169 @@ onMounted(() => fetchList())
   background: var(--admin-card-bg);
   border: 1px solid var(--admin-border);
   border-radius: var(--admin-radius);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
 .res-tree-header {
-  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--admin-border);
-  background: #fafbfc;
 
-  h3 {
-    margin: 0;
-    font-size: 0.92rem;
-    font-weight: 600;
-    color: var(--admin-heading);
-    font-family: "STKaiti", "KaiTi", "SimSun", "Noto Serif SC", serif;
-  }
+  h3 { margin: 0; font-size: 0.84rem; color: var(--admin-text); }
 }
 
 .res-tree-body {
+  padding: 10px 8px;
+  overflow: auto;
   flex: 1;
-  overflow-y: auto;
-  padding: 8px;
+}
+
+.res-tree-all {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: var(--admin-text);
+  cursor: pointer;
+
+  &.is-active { background: rgba(90, 155, 138, 0.14); font-weight: 600; }
+}
+
+.res-tree-node-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding-right: 4px;
+}
+
+.res-tree-label {
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.res-tree-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0.55;
+}
+
+.res-tree-act {
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 4px;
+  background: rgba(90, 155, 138, 0.12);
+  color: var(--admin-text);
+  font-size: 0.68rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.res-tree-empty {
+  padding: 14px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--admin-muted);
 }
 
 .res-main {
-  background: var(--admin-card-bg);
-  border: 1px solid var(--admin-border);
-  border-radius: var(--admin-radius);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
   display: flex;
   flex-direction: column;
-}
-
-.admin-toolbar {
-  display: flex;
-  flex-wrap: wrap;
   gap: 10px;
-  align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--admin-border);
+  min-width: 0;
 }
 
-.toolbar-type {
-  width: 160px;
-}
-
-.toolbar-search {
-  width: 220px;
-}
-
-.toolbar-spacer {
-  flex: 1;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: var(--admin-touch, 38px);
-  padding: 0 14px;
-  border-radius: 8px;
-  border: 1px solid var(--admin-border);
-  background: #fff;
-  color: var(--admin-text);
-  font-size: 0.88rem;
-  cursor: pointer;
-  font-family: inherit;
-  touch-action: manipulation;
-  transition: all 0.15s ease;
-
-  &:hover {
-    background: #f8fafc;
-  }
-}
-
-.btn-primary {
-  background: var(--admin-primary);
-  border-color: var(--admin-primary);
-  color: #fff;
-
-  &:hover {
-    background: var(--admin-primary-hover);
-  }
-}
-
-.btn-danger {
-  background: #fff;
-  border-color: #fecaca;
-  color: var(--admin-danger, #dc2626);
-
-  &:hover {
-    background: #fef2f2;
-  }
-}
-
-.admin-table-wrap {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  margin: 10px 10px 10px 10px;
-}
-
-.admin-table-wrap :deep(.admin-el-table) {
-  --el-table-border-color: var(--admin-border);
-  --el-table-header-bg-color: #f8fafc;
-  --el-table-row-hover-bg-color: #f1f5f9;
-  --el-table-text-color: var(--admin-text);
-  --el-table-header-text-color: var(--admin-text);
-  width: 100%;
-  font-size: 0.88rem;
-
-  &::before,
-  &::after {
-    display: none;
-  }
-
-  .el-table__inner-wrapper::before {
-    display: none;
-  }
-
-  th.el-table__cell {
-    background: #f8fafc;
-    font-weight: 600;
-    color: var(--admin-text);
-    padding: 10px 0;
-  }
-
-  td.el-table__cell {
-    padding: 10px 0;
-    color: var(--admin-text);
-  }
-
-  .el-table-column--selection .cell {
-    padding-left: 8px;
-    padding-right: 8px;
-  }
-
-  .el-table__body tr:nth-child(even) td.el-table__cell {
-    background: #fafbfc;
-  }
-
-  .el-table__body tr:hover > td.el-table__cell {
-    background: #f1f5f9;
-  }
-
-  .el-table-fixed-column--right {
-    background: inherit;
-  }
-
-  .el-table__body tr:nth-child(even) .el-table-fixed-column--right {
-    background: #fafbfc;
-  }
-
-  .el-table__body tr:hover > .el-table-fixed-column--right {
-    background: #f1f5f9;
-  }
-}
-
-.action-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 0.82rem;
-}
-
-.action-primary {
-  background: #dbeafe;
-  color: #2563eb;
-}
-
-.action-success {
-  background: #dcfce7;
-  color: #16a34a;
-}
-
-.action-warning {
-  background: #fef9c3;
-  color: #d97706;
-}
-
-.action-danger {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.action-info {
-  background: #f1f5f9;
-  color: #64748b;
-}
-
-.action-doc {
-  background: #e0e7ff;
-  color: #4f46e5;
-}
-
-.action-deliverable {
-  background: #fce7f3;
-  color: #db2777;
-}
-
-.admin-table-actions {
+.res-stats-bar {
   display: flex;
+  gap: 10px;
   flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  justify-content: center;
 }
 
-.admin-table-actions .btn {
-  min-height: 34px;
-  padding: 0 10px;
-  font-size: 0.84rem;
+.res-stat-pill {
+  font-size: 0.76rem;
+  color: var(--admin-muted);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(90, 155, 138, 0.1);
+
+  strong { color: var(--admin-text); }
 }
 
-.admin-pagination {
-  display: flex;
-  justify-content: flex-end;
-  padding: 12px 16px;
-  border-top: 1px solid var(--admin-border);
-  background: #fafbfc;
+.res-breadcrumb {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--admin-muted);
 }
 
-.admin-pagination :deep(.el-pagination) {
-  .el-pager li {
-    font-size: 0.88rem;
-    min-width: 32px;
-    height: 32px;
-    line-height: 32px;
-  }
-  .btn-prev,
-  .btn-next {
-    min-width: 32px;
-    height: 32px;
-    line-height: 32px;
-  }
+.res-type-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(90, 155, 138, 0.12);
+  color: #2f6f64;
+  font-size: 0.72rem;
 }
 
-@media (max-width: 768px) {
-  .res-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-:deep(.el-dialog) {
-  width: 640px !important;
-  max-width: calc(100vw - 32px);
-  border-radius: 12px;
-  border: 1px solid var(--admin-border);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  background: var(--admin-card-bg);
-
-  .el-dialog__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--admin-border);
-
-    .el-dialog__title {
-      font-size: 1.05rem;
-      font-weight: 600;
-      color: var(--admin-text);
-      margin: 0;
-    }
-
-    .el-dialog__close {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
-      font-size: 1.5rem;
-      color: var(--admin-muted);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.15s ease;
-
-      &:hover {
-        background: #f1f5f9;
-        color: var(--admin-text);
-      }
-    }
-  }
-
-  .el-dialog__body {
-    padding: 20px 18px;
-    color: var(--admin-text);
-    font-size: 0.9rem;
-  }
-
-  .el-dialog__footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    padding: 12px 18px;
-    border-top: 1px solid var(--admin-border);
-    background: #fafbfc;
-  }
-}
-
-:deep(.el-input__wrapper) {
-  min-height: var(--admin-touch);
-  height: var(--admin-touch);
-  border-radius: 8px;
-  border-color: var(--admin-border);
-}
-
-:deep(.el-input__inner) {
-  font-size: 0.9rem;
-  height: 100%;
-}
-
-:deep(.el-select__wrapper) {
-  min-height: var(--admin-touch);
-  height: var(--admin-touch);
-  border-radius: 8px;
+.res-upload-hint {
+  margin-left: 8px;
+  color: var(--admin-muted);
+  font-size: 0.78rem;
 }
 
 .hidden-file-input {
   display: none;
+}
+
+.res-preview-host {
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.res-preview-img {
+  max-width: 100%;
+  max-height: 60vh;
+}
+
+.res-preview-video {
+  width: 100%;
+  max-height: 60vh;
+}
+
+.res-preview-frame {
+  width: 100%;
+  height: 58vh;
+  border: none;
+}
+
+.res-preview-model {
+  width: 100%;
+  height: 58vh;
+}
+
+.res-preview-fallback {
+  text-align: center;
+  color: var(--admin-muted);
+  font-size: 0.84rem;
+  line-height: 1.8;
+}
+
+@media (max-width: 1000px) {
+  .res-layout { grid-template-columns: 1fr; }
 }
 </style>

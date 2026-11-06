@@ -23,6 +23,30 @@ const showEdit = ref(false)
 const editingMenu = ref<MenuItem | null>(null)
 const isAdd = ref(false)
 const addParentId = ref<string | null>(null)
+const sortSaving = ref(false)
+
+function flattenRows(tree: MenuItem[], out: MenuItem[] = []): MenuItem[] {
+  tree.forEach(item => {
+    out.push(item)
+    flattenRows(item.children || [], out)
+  })
+  return out
+}
+
+async function saveSort() {
+  const rows = flattenRows(filteredTree.value)
+  sortSaving.value = true
+  try {
+    await Promise.all(rows.filter(row => row.id).map(row => updateMenu(row.id, { sort: row.sort })))
+    ElMessage.success('排序已保存')
+    await fetchTree()
+    await menuStore.loadMenuItems()
+  } catch {
+    /* 请求失败已由拦截器提示 */
+  } finally {
+    sortSaving.value = false
+  }
+}
 
 function getIconComponent(iconName: string) {
   if (!iconName) return null
@@ -200,6 +224,7 @@ onMounted(() => fetchTree())
         <div class="toolbar-spacer"></div>
         <button type="button" class="btn btn-primary" @click="openAdd(null)">新增菜单</button>
         <button type="button" class="btn" @click="toggleExpand">{{ expandedRows.length ? '全部折叠' : '全部展开' }}</button>
+        <button type="button" class="btn btn-primary" :disabled="sortSaving" @click="saveSort">保存排序</button>
         <span class="toolbar-total">共 {{ totalCount }} 项</span>
       </div>
 
@@ -223,7 +248,18 @@ onMounted(() => fetchTree())
               <span v-else class="icon-text">{{ row.icon || '-' }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="sort" label="排序" width="80" align="center" />
+          <el-table-column prop="sort" label="排序" width="110" align="center">
+            <template #default="{ row }">
+              <el-input-number
+                v-model="row.sort"
+                :min="0"
+                :step="1"
+                :controls="false"
+                size="small"
+                class="sort-input"
+              />
+            </template>
+          </el-table-column>
           <el-table-column prop="perms" label="权限标识" min-width="170" show-overflow-tooltip align="left" />
           <el-table-column prop="component" label="组件路径" min-width="180" show-overflow-tooltip align="left" />
           <el-table-column label="状态" width="90" align="center">
@@ -354,6 +390,14 @@ onMounted(() => fetchTree())
   font-size: 0.88rem;
   color: var(--admin-text);
   opacity: 0.7;
+}
+
+.sort-input {
+  width: 72px;
+
+  :deep(.el-input__inner) {
+    text-align: center;
+  }
 }
 
 .btn {
