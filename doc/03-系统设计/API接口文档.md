@@ -36,7 +36,8 @@
 12. [日志管理模块](#12-日志管理模块)
 13. [运维监控模块](#13-运维监控模块)
 14. [AI模块](#14-ai模块)
-15. [错误码参考](#15-错误码参考)
+15. [游客端公开接口与埋点](#15-游客端公开接口与埋点)
+16. [错误码参考](#16-错误码参考)
 
 ---
 
@@ -45,6 +46,8 @@
 ### 1.1 文档目的
 
 本文档定义合江汉代画像石棺数字化保护与展示利用项目的所有API接口规范，包括接口路径、请求方式、请求参数、响应格式、错误处理等内容。本文档是前后端开发的契约依据，所有接口需严格遵循本文档定义的规范进行实现和调用。
+
+> **实现状态（2026-11-06）**：第 7–9 章（崖墓、石棺、全景）、第 12 章（日志）、第 14 章（AI，含占位说明）、第 15 章（游客端公开接口与埋点）已按当前代码更新。其余章节（用户、角色、组织、资源、系统配置、运维监控）的部分字段与示例仍为早期设计稿，实际以 `hanheritage-api/src/modules/**/*.controller.ts` 为准；接口响应统一由 `TransformInterceptor` 包装为 `{ code, message, data }`。
 
 ### 1.2 接口基础信息
 
@@ -985,27 +988,26 @@ GET方法用于查询数据，幂等操作，不修改服务器数据。POST方�
 
 ## 7. 崖墓管理模块
 
-### 7.1 查询崖墓列表
+> 说明：`/cliffs` 系列为后台管理接口，除游客端公开接口外均需携带 JWT。游客端请使用第 15 章 `/visitor/*` 接口。
 
-分页查询崖墓群列表。
+### 7.1 查询崖墓列表
 
 **接口信息**
 
 - 接口路径：GET /cliffs
-- 认证要求：否（公开接口）
-- 接口描述：分页查询崖墓群列表
+- 认证要求：是
+- 接口描述：分页查询崖墓群列表（仅返回未删除数据）
 
 **请求参数**
 
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
-| code | string | 否 | 编号（精确匹配） |
-| name | string | 否 | 名称（模糊匹配） |
-| district | string | 否 | 所属乡镇 |
-| featured | integer | 否 | 是否重点：0否 1是 |
+| page | integer | 否 | 页码，默认 1 |
+| pageSize | integer | 否 | 每页数量，默认 10 |
+| keyword | string | 否 | 编码/名称/地址/乡镇模糊匹配 |
+| level | string | 否 | 保护级别精确匹配 |
+| town | string | 否 | 所属乡镇精确匹配 |
 | status | integer | 否 | 状态：0下线 1上线 |
-| page | integer | 否 | 页码 |
-| pageSize | integer | 否 | 每页数量 |
 
 **响应示例**
 
@@ -1014,18 +1016,32 @@ GET方法用于查询数据，幂等操作，不修改服务器数据。POST方�
   "code": 200,
   "message": "success",
   "data": {
-    "list": [
+    "items": [
       {
-        "id": 1,
+        "id": "1",
         "code": "CM-01",
-        "name": "大耳朵崖墓群",
+        "name": "洞溪崖墓群",
         "lng": 105.83123,
         "lat": 28.45234,
-        "district": "合江镇",
+        "area": 1500,
+        "town": "合江镇",
+        "address": "合江镇洞溪村",
+        "protectionUnitName": "洞溪崖墓群",
+        "composition": "崖墓群",
+        "level": "省级文物保护单位",
+        "category": "崖墓",
+        "dynasty": "东汉",
+        "mapLeft": 30.1,
+        "mapTop": 48.6,
         "featured": 1,
+        "viewCount": 12,
+        "coverImage": "/uploads/cliff/xxx.png",
+        "modelUrl": "/uploads/model/xxx.glb",
+        "images": [{ "id": "1", "imageUrl": "/uploads/cliff/xxx.png", "imageType": "photo", "sort": 0 }],
+        "entrances": [{ "id": "1", "x": 10.5, "y": 20.3, "z": 5.8, "direction": "东", "intro": "主墓口" }],
+        "coffins": [{ "id": "1", "code": "CF-01", "name": "1号石棺" }],
         "status": 1,
-        "coffinCount": 5,
-        "createTime": "2026-01-01 10:00:00"
+        "delFlag": 0
       }
     ],
     "total": 13,
@@ -1037,13 +1053,11 @@ GET方法用于查询数据，幂等操作，不修改服务器数据。POST方�
 
 ### 7.2 查询崖墓详情
 
-根据ID查询崖墓群详细信息。
-
 **接口信息**
 
 - 接口路径：GET /cliffs/:id
-- 认证要求：否（公开接口）
-- 接口描述：查询崖墓群详情
+- 认证要求：是
+- 接口描述：查询崖墓群详情，含墓口、未删除石棺、图片列表
 
 **路径参数**
 
@@ -1058,236 +1072,110 @@ GET方法用于查询数据，幂等操作，不修改服务器数据。POST方�
   "code": 200,
   "message": "success",
   "data": {
-    "id": 1,
+    "id": "1",
     "code": "CM-01",
-    "name": "大耳朵崖墓群",
-    "lng": 105.83123,
-    "lat": 28.45234,
-    "area": 1500,
-    "level": "省级文物保护单位",
-    "era": "东汉",
-    "district": "合江镇",
-    "description": "大耳朵崖墓群是合江汉代崖墓的代表性遗址...",
-    "featured": 1,
-    "status": 1,
-    "imageUrl": "https://xxx.com/cliff-1.jpg",
-    "modelUrl": "https://xxx.com/cline-1.glb",
-    "coffins": [
-      {
-        "id": 1,
-        "code": "CK-01",
-        "name": "1号石棺"
-      }
-    ],
-    "entranceCount": 3,
-    "createTime": "2026-01-01 10:00:00"
+    "name": "洞溪崖墓群",
+    "description": "……",
+    "coverImage": "/uploads/cliff/xxx.png",
+    "modelUrl": null,
+    "mapLeft": 30.1,
+    "mapTop": 48.6,
+    "viewCount": 12,
+    "images": [],
+    "entrances": [],
+    "coffins": [],
+    "status": 1
   }
 }
 ```
 
 ### 7.3 新增崖墓
 
-创建新的崖墓群记录。
-
 **接口信息**
 
 - 接口路径：POST /cliffs
 - 认证要求：是
-- 接口描述：新增崖墓群
+- 接口描述：新增崖墓群；`modelUrl` 会先校验可达性，不可达返回 400
 
 **请求参数**
 
 ```json
 {
+  "code": "CM-14",
   "name": "福宝崖墓群",
   "lng": 105.84234,
   "lat": 28.48321,
   "area": 1200,
+  "town": "福宝镇",
+  "address": "福宝镇某村",
+  "protectionUnitName": "福宝崖墓群",
+  "composition": "崖墓群",
   "level": "县级文物保护单位",
-  "era": "东汉",
-  "district": "福宝镇",
-  "description": "福宝崖墓群位于福宝镇...",
-  "featured": 0,
-  "status": 1,
-  "imageUrl": "https://xxx.com/cliff-new.jpg"
+  "category": "崖墓",
+  "dynasty": "东汉",
+  "description": "福宝崖墓群位于福宝镇……",
+  "coverImage": "/uploads/cliff/xxx.png",
+  "modelUrl": "/uploads/model/xxx.glb",
+  "images": [{ "imageUrl": "/uploads/cliff/xxx.png", "imageType": "photo", "sort": 0 }],
+  "status": 1
 }
 ```
 
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
+| code | string | 否 | 编码，缺省自动生成 |
 | name | string | 是 | 崖墓名称 |
-| lng | number | 否 | 经度 |
-| lat | number | 否 | 纬度 |
+| lng/lat | number | 否 | 经纬度 |
 | area | number | 否 | 面积（平方米） |
-| level | string | 否 | 保护级别 |
-| era | string | 否 | 年代 |
-| district | string | 否 | 所属乡镇 |
+| town/address/protectionUnitName/composition | string | 否 | 乡镇、地址、保护单位、构成 |
+| level/category/dynasty | string | 否 | 保护级别、类别、年代 |
 | description | string | 否 | 详细介绍 |
-| featured | integer | 否 | 是否重点标注 |
-| status | integer | 否 | 状态 |
-| imageUrl | string | 否 | 图片URL |
-| modelUrl | string | 否 | 三维模型URL |
+| coverImage | string | 否 | 封面图地址 |
+| modelUrl | string | 否 | 三维模型地址（站内路径或 http(s)） |
+| images | array | 否 | 图片列表，字段 `imageUrl/imageType/sort` |
+| status | integer | 否 | 状态，默认 1 |
+
+> 当前新增/修改接口未接收 `mapLeft/mapTop/featured`，这两项由初始化数据或数据库维护，后台暂无编辑入口。
 
 **响应示例**
 
 ```json
-{
-  "code": 200,
-  "message": "success",
-  "data": {
-    "id": 14,
-    "code": "CM-14"
-  }
-}
+{ "code": 200, "message": "success", "data": { "id": "14", "code": "CM-14" } }
 ```
 
 ### 7.4 修改崖墓
-
-更新崖墓群信息。
 
 **接口信息**
 
 - 接口路径：PUT /cliffs/:id
 - 认证要求：是
-- 接口描述：修改崖墓群
+- 接口描述：修改崖墓群；传入 `images` 时整体替换图片列表
 
-**路径参数**
+**请求参数**：同 7.3。`modelUrl` 同样会校验可达性。
 
-| 参数名 | 类型 | 说明 |
-|--------|------|------|
-| id | integer | 崖墓ID |
-
-**请求参数**
-
-```json
-{
-  "name": "福宝崖墓群",
-  "lng": 105.84234,
-  "lat": 28.48321,
-  "area": 1500,
-  "level": "县级文物保护单位",
-  "era": "东汉",
-  "district": "福宝镇",
-  "description": "福宝崖墓群位于福宝镇...",
-  "featured": 1,
-  "status": 1
-}
-```
-
-**响应示例**
-
-```json
-{
-  "code": 200,
-  "message": "success",
-  "data": null
-}
-```
+**响应示例**：返回修改后的崖墓详情，结构同 7.2。
 
 ### 7.5 删除崖墓
-
-删除崖墓群。
 
 **接口信息**
 
 - 接口路径：DELETE /cliffs/:id
 - 认证要求：是
-- 接口描述：删除崖墓群
-
-**路径参数**
-
-| 参数名 | 类型 | 说明 |
-|--------|------|------|
-| id | integer | 崖墓ID |
+- 接口描述：逻辑删除（`delFlag=1`），游客端随即不可见
 
 **响应示例**
 
 ```json
-{
-  "code": 200,
-  "message": "success",
-  "data": null
-}
+{ "code": 200, "message": "success", "data": null }
 ```
 
 ### 7.6 查询墓口列表
 
-查询崖墓群下的墓口点位列表。
-
 **接口信息**
 
-- 接口路径：GET /cliffs/:id/entrances
+- 接口路径：GET /cliffs/entrances
 - 认证要求：是
-- 接口描述：查询墓口点位列表
-
-**路径参数**
-
-| 参数名 | 类型 | 说明 |
-|--------|------|------|
-| id | integer | 崖墓ID |
-
-**响应示例**
-
-```json
-{
-  "code": 200,
-  "message": "success",
-  "data": [
-    {
-      "id": 1,
-      "cliffId": 1,
-      "name": "1号墓口",
-      "x": 10.5,
-      "y": 20.3,
-      "z": 5.8,
-      "heading": 180,
-      "pitch": 0,
-      "description": "主墓口，面向东方",
-      "createTime": "2026-01-01 10:00:00"
-    }
-  ]
-}
-```
-
-### 7.7 新增墓口
-
-为崖墓群添加墓口点位。
-
-**接口信息**
-
-- 接口路径：POST /cliffs/:id/entrances
-- 认证要求：是
-- 接口描述：新增墓口点位
-
-**路径参数**
-
-| 参数名 | 类型 | 说明 |
-|--------|------|------|
-| id | integer | 崖墓ID |
-
-**请求参数**
-
-```json
-{
-  "name": "2号墓口",
-  "x": 15.2,
-  "y": 22.1,
-  "z": 6.5,
-  "heading": 90,
-  "pitch": 0,
-  "description": "副墓口"
-}
-```
-
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| name | string | 是 | 墓口名称 |
-| x | number | 是 | 三维坐标X |
-| y | number | 是 | 三维坐标Y |
-| z | number | 是 | 三维坐标Z |
-| heading | number | 否 | 朝向角度 |
-| pitch | number | 否 | 俯仰角度 |
-| description | string | 否 | 描述 |
+- 接口描述：分页查询全部墓口点位，可通过 `page/pageSize` 分页
 
 **响应示例**
 
@@ -1296,37 +1184,80 @@ GET方法用于查询数据，幂等操作，不修改服务器数据。POST方�
   "code": 200,
   "message": "success",
   "data": {
-    "id": 10
+    "items": [
+      {
+        "id": "1",
+        "cliffId": "1",
+        "x": 10.5,
+        "y": 20.3,
+        "z": 5.8,
+        "direction": "东",
+        "intro": "主墓口"
+      }
+    ],
+    "total": 1
   }
 }
 ```
+
+### 7.7 新增 / 修改 / 删除墓口
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | /cliffs/:id/entrances | 为指定崖墓新增墓口 |
+| PUT | /cliffs/entrances/:id | 修改墓口 |
+| DELETE | /cliffs/entrances/:id | 删除墓口 |
+| DELETE | /cliffs/:cliffId/entrances/:entranceId | 按崖墓与墓口双 ID 删除 |
+
+**请求参数**
+
+```json
+{ "x": 10.5, "y": 20.3, "z": 5.8, "direction": "东", "intro": "主墓口" }
+```
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| x / y / z | number | 否 | 三维坐标 |
+| direction | string | 否 | 朝向 |
+| intro | string | 否 | 简介 |
+
+### 7.8 校验模型地址
+
+**接口信息**
+
+- 接口路径：GET /cliffs/model/check?url=...
+- 认证要求：是
+- 接口描述：后台填写模型地址后即时校验。站内 `/` 路径检查 `uploads/` 与 `web/public/` 物理文件；`http(s)` 地址按 HEAD → GET Range 探测，超时 5 秒
+
+**响应示例**
+
+```json
+{ "code": 200, "message": "success", "data": { "reachable": true, "message": "模型文件存在" } }
+```
+
+失败时 `reachable=false` 并返回原因（如“模型文件不存在，请检查路径”）；新增/修改崖墓时服务端会再次校验并直接返回 400。
 
 ---
 
 ## 8. 石棺管理模块
 
-### 8.1 查询石棺列表
+> 说明：`/coffins` 为后台管理接口，需携带 JWT；游客端请使用 `/visitor/coffins`。
 
-分页查询石棺列表。
+### 8.1 查询石棺列表
 
 **接口信息**
 
 - 接口路径：GET /coffins
-- 认证要求：否（公开接口）
-- 接口描述：分页查询石棺列表
+- 认证要求：是
+- 接口描述：分页查询未删除石棺，含关联崖墓、图片与模型
 
 **请求参数**
 
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
-| code | string | 否 | 编号（精确匹配） |
-| name | string | 否 | 名称（模糊匹配） |
-| cliffId | integer | 否 | 崖墓ID |
-| era | string | 否 | 年代 |
-| type | string | 否 | 类型 |
-| status | integer | 否 | 状态 |
-| page | integer | 否 | 页码 |
-| pageSize | integer | 否 | 每页数量 |
+| page | integer | 否 | 页码，默认 1 |
+| pageSize | integer | 否 | 每页数量，默认 10 |
+| keyword | string | 否 | 编码/名称/年代/级别/质地/墓群等模糊匹配 |
 
 **响应示例**
 
@@ -1335,18 +1266,26 @@ GET方法用于查询数据，幂等操作，不修改服务器数据。POST方�
   "code": 200,
   "message": "success",
   "data": {
-    "list": [
+    "items": [
       {
-        "id": 1,
-        "code": "CK-01",
-        "name": "车马出行画像石棺",
-        "cliffId": 1,
-        "cliffName": "大耳朵崖墓群",
-        "era": "东汉",
-        "type": "完整",
-        "thumbnailUrl": "https://xxx.com/coffin-1-thumb.jpg",
+        "id": "1",
+        "code": "CF-01",
+        "name": "1号石棺",
+        "cliffId": "1",
+        "cliff": { "id": "1", "code": "CM-01", "name": "洞溪崖墓群" },
+        "dynasty": "东汉",
+        "grade": "一级",
+        "dimensions": "2.4×0.7×0.8m",
+        "texture": "红砂石",
+        "description": "……",
+        "thumbnail": "/uploads/coffin/xxx.png",
+        "mapLeft": null,
+        "mapTop": null,
+        "viewCount": 3,
+        "images": [{ "id": "1", "imageUrl": "/uploads/coffin/xxx.png", "imageType": "ortho", "sort": 0 }],
+        "models": [{ "id": "1", "modelUrl": "/uploads/model/xxx.glb", "format": "glb", "fileSize": 1024 }],
         "status": 1,
-        "createTime": "2026-01-01 10:00:00"
+        "delFlag": 0
       }
     ],
     "total": 28,
@@ -1358,13 +1297,11 @@ GET方法用于查询数据，幂等操作，不修改服务器数据。POST方�
 
 ### 8.2 查询石棺详情
 
-根据ID查询石棺详细信息。
-
 **接口信息**
 
 - 接口路径：GET /coffins/:id
-- 认证要求：否（公开接口）
-- 接口描述：查询石棺详情
+- 认证要求：是
+- 接口描述：返回石棺全部业务字段及 `images`、`models`
 
 **路径参数**
 
@@ -1379,288 +1316,166 @@ GET方法用于查询数据，幂等操作，不修改服务器数据。POST方�
   "code": 200,
   "message": "success",
   "data": {
-    "id": 1,
-    "code": "CK-01",
-    "name": "车马出行画像石棺",
-    "cliffId": 1,
-    "cliffName": "大耳朵崖墓群",
-    "era": "东汉",
-    "type": "完整",
-    "length": 2.5,
-    "width": 0.8,
-    "height": 0.9,
-    "texture": "红砂石",
-    "preservation": "良好",
-    "description": "该石棺侧壁刻有车马出行图...",
-    "thumbnailUrl": "https://xxx.com/coffin-1-thumb.jpg",
-    "models": [
-      {
-        "id": 1,
-        "url": "https://xxx.com/coffin-1.glb",
-        "format": "glb",
-        "fileSize": 5242880
-      }
-    ],
-    "images": {
-      "ortho": [
-        {
-          "id": 1,
-          "url": "https://xxx.com/coffin-1-ortho-1.jpg"
-        }
-      ],
-      "rubbing": [],
-      "line": [],
-      "enhanced": []
-    },
-    "status": 1,
-    "createTime": "2026-01-01 10:00:00"
+    "id": "1",
+    "code": "CF-01",
+    "name": "1号石棺",
+    "cliffId": "1",
+    "cliff": { "id": "1", "name": "洞溪崖墓群" },
+    "viewCount": 3,
+    "images": [],
+    "models": [],
+    "status": 1
   }
 }
 ```
 
 ### 8.3 新增石棺
 
-创建新的石棺记录。
-
 **接口信息**
 
 - 接口路径：POST /coffins
 - 认证要求：是
-- 接口描述：新增石棺
+- 接口描述：新增石棺，`code` 必填且唯一
 
 **请求参数**
 
 ```json
 {
+  "code": "CF-29",
   "name": "乐舞百戏石棺",
   "cliffId": 2,
-  "era": "东汉",
-  "type": "完整",
-  "length": 2.6,
-  "width": 0.85,
-  "height": 0.95,
+  "dynasty": "东汉",
+  "grade": "一级",
   "texture": "青石",
-  "preservation": "较好",
-  "description": "该石棺侧面刻有乐舞百戏图案...",
+  "dimensions": "2.6×0.85×0.95m",
+  "description": "该石棺侧面刻有乐舞百戏图案……",
+  "mapLeft": 40.2,
+  "mapTop": 55.1,
   "status": 1
 }
 ```
 
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
+| code | string | 是 | 石棺编码（唯一） |
 | name | string | 是 | 石棺名称 |
-| cliffId | integer | 是 | 所属崖墓ID |
-| era | string | 否 | 年代 |
-| type | string | 否 | 类型 |
-| length | number | 否 | 长度（米） |
-| width | number | 否 | 宽度（米） |
-| height | number | 否 | 高度（米） |
-| texture | string | 否 | 质地 |
-| preservation | string | 否 | 保存状况 |
+| cliffId | integer | 否 | 所属崖墓ID |
+| dynasty / grade / source / completeness / dimensions / texture | string | 否 | 年代、级别、来源、完残、尺寸、质地 |
 | description | string | 否 | 详细描述 |
-| status | integer | 否 | 状态 |
+| thumbnail | string | 否 | 缩略图地址 |
+| mapLeft / mapTop | number | 否 | 导览地图百分比坐标（0-100） |
+| status | integer | 否 | 状态，默认 1 |
 
-**响应示例**
+> DTO 还支持 `originalName/registryType/tombGroup/eraCategory/eraSpecific/artifactCategory/materialCategory/materialSpecific/weightRange/weightValue/weightUnit/sourceDetail/completenessDetail/preservationStatus/accessionRange/accessionYear/quantity/dimText` 等馆藏字段。
 
-```json
-{
-  "code": 200,
-  "message": "success",
-  "data": {
-    "id": 29,
-    "code": "CK-29"
-  }
-}
-```
+**响应示例**：返回新建对象（`id`、`cliffId` 为字符串）。
 
 ### 8.4 修改石棺
-
-更新石棺信息。
 
 **接口信息**
 
 - 接口路径：PUT /coffins/:id
 - 认证要求：是
-- 接口描述：修改石棺
+- 接口描述：修改石棺信息；字段同 8.3
 
-**路径参数**
-
-| 参数名 | 类型 | 说明 |
-|--------|------|------|
-| id | integer | 石棺ID |
-
-**请求参数**
-
-```json
-{
-  "name": "车马出行画像石棺（修复版）",
-  "era": "东汉",
-  "type": "完整",
-  "preservation": "修复后良好",
-  "description": "该石棺侧壁刻有车马出行图，经过专业修复..."
-}
-```
-
-**响应示例**
-
-```json
-{
-  "code": 200,
-  "message": "success",
-  "data": null
-}
-```
+**响应示例**：返回修改后的对象。
 
 ### 8.5 删除石棺
-
-删除石棺记录。
 
 **接口信息**
 
 - 接口路径：DELETE /coffins/:id
 - 认证要求：是
-- 接口描述：删除石棺
-
-**路径参数**
-
-| 参数名 | 类型 | 说明 |
-|--------|------|------|
-| id | integer | 石棺ID |
+- 接口描述：逻辑删除（`delFlag=1`）
 
 **响应示例**
 
 ```json
-{
-  "code": 200,
-  "message": "success",
-  "data": null
-}
+{ "code": 200, "message": "success", "data": null }
 ```
 
-### 8.6 上传成果图
-
-上传石棺成果图。
+### 8.6 新增成果图
 
 **接口信息**
 
 - 接口路径：POST /coffins/:id/images
 - 认证要求：是
-- 接口描述：上传石棺成果图
-
-**路径参数**
-
-| 参数名 | 类型 | 说明 |
-|--------|------|------|
-| id | integer | 石棺ID |
+- 接口描述：以 JSON 方式登记成果图地址（不是 multipart 上传）
 
 **请求参数**
 
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| file | file | 是 | 图片文件，支持jpg、png |
-| imageType | string | 是 | 图片类型：ortho正射、rubbing拓片、line线划图、enhanced增强图 |
-| sort | integer | 否 | 排序号 |
-
-**响应示例**
-
 ```json
 {
-  "code": 200,
-  "message": "success",
-  "data": {
-    "id": 100,
-    "url": "https://xxx.com/coffin-1-ortho-2.jpg"
-  }
+  "imageUrl": "/uploads/coffin/xxx.png",
+  "imageType": "ortho",
+  "sort": 0
 }
 ```
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| imageUrl | string | 是 | 图片地址（可先通过 `/resources/upload` 上传） |
+| imageType | string | 是 | ortho 正射 / rubbing 拓片 / line 线划 / enhanced 增强 |
+| sort | integer | 否 | 排序号 |
 
 ### 8.7 删除成果图
 
-删除石棺成果图。
-
 **接口信息**
 
-- 接口路径：DELETE /coffins/:id/images/:imageId
+- 接口路径：DELETE /coffins/:coffinId/images/:imageId
 - 认证要求：是
-- 接口描述：删除成果图
-
-**路径参数**
-
-| 参数名 | 类型 | 说明 |
-|--------|------|------|
-| id | integer | 石棺ID |
-| imageId | integer | 图片ID |
+- 接口描述：删除图片记录，不删除物理文件
 
 **响应示例**
 
 ```json
-{
-  "code": 200,
-  "message": "success",
-  "data": null
-}
+{ "code": 200, "message": "success", "data": null }
 ```
 
-### 8.8 上传三维模型
-
-上传石棺三维模型文件。
+### 8.8 新增 / 删除三维模型
 
 **接口信息**
 
-- 接口路径：POST /coffins/:id/models
+- 新增：POST /coffins/:id/models
+- 删除：DELETE /coffins/:coffinId/models/:modelId
 - 认证要求：是
-- 接口描述：上传三维模型
-
-**路径参数**
-
-| 参数名 | 类型 | 说明 |
-|--------|------|------|
-| id | integer | 石棺ID |
+- 接口描述：以 JSON 方式登记模型地址，不做文件上传
 
 **请求参数**
 
+```json
+{ "modelUrl": "/uploads/model/xxx.glb", "format": "glb", "fileSize": 5242880 }
+```
+
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
-| file | file | 是 | 模型文件，支持glb、gltf格式，大小不超过50MB |
-
-**响应示例**
-
-```json
-{
-  "code": 200,
-  "message": "success",
-  "data": {
-    "id": 50,
-    "url": "https://xxx.com/coffin-1.glb",
-    "format": "glb",
-    "fileSize": 5242880
-  }
-}
-```
+| modelUrl | string | 是 | 模型地址 |
+| format | string | 是 | glb / gltf |
+| fileSize | number | 否 | 文件大小（字节） |
 
 ---
 
 ## 9. 全景管理模块
 
-### 9.1 查询全景列表
+> 说明：`/panoramas` 为后台管理接口，需携带 JWT；游客端请使用 `/visitor/panoramas`。分类枚举为 `air/ground/inner/outdoor`，游客端把 `inner` 映射为“室内”。
 
-分页查询全景场景列表。
+### 9.1 查询全景列表
 
 **接口信息**
 
 - 接口路径：GET /panoramas
-- 认证要求：否（公开接口）
-- 接口描述：分页查询全景列表
+- 认证要求：是
+- 接口描述：分页查询未删除全景场景
 
 **请求参数**
 
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
-| name | string | 否 | 场景名称（模糊匹配） |
-| type | string | 否 | 类型：aerial空中、ground地面、indoor室内、other其他 |
-| status | integer | 否 | 状态：0下线 1上线 |
-| page | integer | 否 | 页码 |
-| pageSize | integer | 否 | 每页数量 |
+| page | integer | 否 | 页码，默认 1 |
+| pageSize | integer | 否 | 每页数量，默认 10 |
+| keyword | string | 否 | 名称/位置/描述模糊匹配 |
+| category | string | 否 | air / ground / inner / outdoor |
+| status | integer | 否 | 0草稿 1在线 |
 
 **响应示例**
 
@@ -1669,15 +1484,20 @@ GET方法用于查询数据，幂等操作，不修改服务器数据。POST方�
   "code": 200,
   "message": "success",
   "data": {
-    "list": [
+    "items": [
       {
-        "id": 1,
+        "id": "1",
         "name": "大耳朵崖墓空中全景",
-        "type": "aerial",
+        "category": "air",
         "location": "合江镇大耳朵村",
-        "thumbnailUrl": "https://xxx.com/panorama-1-thumb.jpg",
+        "description": "……",
+        "imageUrl": "/prototype/assets/pano-aerial.png",
+        "fileSize": 2048,
+        "viewCount": 5,
         "status": 1,
-        "createTime": "2026-01-01 10:00:00"
+        "delFlag": 0,
+        "viewpoints": [],
+        "hotspots": []
       }
     ],
     "total": 8,
@@ -1689,13 +1509,11 @@ GET方法用于查询数据，幂等操作，不修改服务器数据。POST方�
 
 ### 9.2 查询全景详情
 
-根据ID查询全景详细信息。
-
 **接口信息**
 
 - 接口路径：GET /panoramas/:id
 - 认证要求：是
-- 接口描述：查询全景详情
+- 接口描述：返回全景字段及 `viewpoints`、`hotspots`
 
 **路径参数**
 
@@ -1710,54 +1528,36 @@ GET方法用于查询数据，幂等操作，不修改服务器数据。POST方�
   "code": 200,
   "message": "success",
   "data": {
-    "id": 1,
+    "id": "1",
     "name": "大耳朵崖墓空中全景",
-    "type": "aerial",
-    "location": "合江镇大耳朵村",
-    "description": "从空中俯瞰大耳朵崖墓群全貌...",
-    "imageUrl": "https://xxx.com/panorama-1.jpg",
-    "status": 1,
-    "viewpoints": [
-      {
-        "id": 1,
-        "name": "主视角",
-        "pitch": 0,
-        "yaw": 0
-      }
-    ],
-    "hotspots": [
-      {
-        "id": 1,
-        "type": "scene",
-        "pitch": -5,
-        "yaw": 120,
-        "targetSceneId": 2,
-        "targetSceneName": "崖墓近景"
-      }
-    ],
-    "createTime": "2026-01-01 10:00:00"
+    "category": "air",
+    "imageUrl": "/prototype/assets/pano-aerial.png",
+    "viewCount": 5,
+    "viewpoints": [{ "id": "1", "name": "主视角", "lng": 105.8, "lat": 28.4, "height": 20 }],
+    "hotspots": [{ "id": "1", "type": "scene", "config": "{\"target\":2}", "posX": 0.5, "posY": 0.1 }],
+    "status": 1
   }
 }
 ```
 
 ### 9.3 新增全景
 
-创建新的全景场景。
-
 **接口信息**
 
 - 接口路径：POST /panoramas
 - 认证要求：是
-- 接口描述：新增全景
+- 接口描述：新增全景场景
 
 **请求参数**
 
 ```json
 {
   "name": "博物馆室内全景",
-  "type": "indoor",
+  "category": "inner",
   "location": "合江县博物馆",
-  "description": "博物馆展厅内部全景...",
+  "description": "博物馆展厅内部全景……",
+  "imageUrl": "/prototype/assets/pano-museum-indoor-hall.png",
+  "fileSize": 2048,
   "status": 1
 }
 ```
@@ -1765,94 +1565,47 @@ GET方法用于查询数据，幂等操作，不修改服务器数据。POST方�
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
 | name | string | 是 | 场景名称 |
-| type | string | 是 | 类型 |
-| location | string | 否 | 位置 |
-| description | string | 否 | 描述 |
-| status | integer | 否 | 状态 |
+| category | string | 否 | air / ground / inner / outdoor |
+| location / description | string | 否 | 位置、描述 |
+| imageUrl | string | 否 | 全景图地址 |
+| fileSize | integer | 否 | 文件大小（KB） |
+| status | integer | 否 | 0草稿 1在线，默认 1 |
 
-**响应示例**
+### 9.4 修改 / 删除全景
 
-```json
-{
-  "code": 200,
-  "message": "success",
-  "data": {
-    "id": 9
-  }
-}
-```
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| PUT | /panoramas/:id | 修改全景，字段同 9.3 |
+| DELETE | /panoramas/:id | 逻辑删除（`delFlag=1`） |
 
-### 9.4 上传全景图片
-
-上传全景场景图片。
+### 9.5 上传全景图片
 
 **接口信息**
 
-- 接口路径：POST /panoramas/:id/image
+- 接口路径：POST /panoramas/:id/upload
 - 认证要求：是
-- 接口描述：上传全景图片
-
-**路径参数**
-
-| 参数名 | 类型 | 说明 |
-|--------|------|------|
-| id | integer | 全景ID |
+- 接口描述：multipart 上传全景图，保存到 `uploads/panorama/` 并回写 `imageUrl/fileSize`
 
 **请求参数**
 
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
-| file | file | 是 | 全景图片文件，支持jpg格式，建议尺寸8192×4096，大小不超过30MB |
+| file | file | 是 | 全景图片，单文件上限 500MB |
 
 **响应示例**
 
 ```json
-{
-  "code": 200,
-  "message": "success",
-  "data": {
-    "url": "https://xxx.com/panorama-9.jpg"
-  }
-}
+{ "code": 200, "message": "success", "data": { "imageUrl": "/uploads/panorama/xxx.jpg", "fileSize": 1024 } }
 ```
 
-### 9.5 修改全景状态
+### 9.6 视角点与热点
 
-修改全景上线或下线状态。
-
-**接口信息**
-
-- 接口路径：PUT /panoramas/:id/status
-- 认证要求：是
-- 接口描述：修改全景状态
-
-**路径参数**
-
-| 参数名 | 类型 | 说明 |
-|--------|------|------|
-| id | integer | 全景ID |
-
-**请求参数**
-
-```json
-{
-  "status": 1
-}
-```
-
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| status | integer | 是 | 状态：0下线 1上线 |
-
-**响应示例**
-
-```json
-{
-  "code": 200,
-  "message": "success",
-  "data": null
-}
-```
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | /panoramas/:id/viewpoints | 新增视角点（name/lng/lat/height） |
+| DELETE | /panoramas/:panoramaId/viewpoints/:viewpointId | 删除视角点 |
+| POST | /panoramas/:id/hotspots | 新增热点（type/config/posX/posY） |
+| DELETE | /panoramas/:panoramaId/hotspots/:hotspotId | 删除热点 |
 
 ---
 
@@ -2207,6 +1960,17 @@ GET方法用于查询数据，幂等操作，不修改服务器数据。POST方�
 
 ## 12. 日志管理模块
 
+> **实现说明（2026-11-06）**：当前实际接口为：
+>
+> - `GET /logs/login?page&pageSize&keyword|username`
+> - `GET /logs/login/export?keyword`
+> - `GET /logs/operations?page&pageSize&keyword&startTime&endTime`（`GET /logs/operation` 为兼容旧路径）
+> - `GET /logs/operations/export?keyword&startTime&endTime`
+> - `DELETE /logs/operations/clear`、`DELETE /logs/operations/batch`、`DELETE /logs/operations/:id`
+> - `DELETE /logs/login/clear`、`DELETE /logs/login/batch`、`DELETE /logs/login/:id`
+>
+> 以下示例字段为早期设计；实际返回为 `{ items, total, page, pageSize }`，登录日志字段包含 `username/ip/success/failReason/loginTime`。
+
 ### 12.1 查询登录日志
 
 分页查询登录日志。
@@ -2523,15 +2287,23 @@ GET方法用于查询数据，幂等操作，不修改服务器数据。POST方�
 
 ## 14. AI模块
 
+> **实现状态（2026-11-06）**：本章为规划稿，当前未接入 LLM、向量库、SSE 或图像识别服务。`AiService` 仅返回占位内容：
+>
+> - `POST /ai/chat`：请求字段为 `message`（可选 `history`），返回 `{ reply: "AI assistant placeholder response for: \"...\"", timestamp }`。
+> - `POST /ai/recognize`：请求字段为 `imageUrl`，返回 `{ imageUrl, results: [], message: "AI recognition placeholder - not yet configured" }`。
+> - `GET /ai/history`：需登录，返回 `{ items: [], total: 0, page, pageSize, userId }`。
+>
+> 游客端与管理后台均无 AI 入口。以下示例为设计目标，不是当前实际返回。
+
 ### 14.1 智能问答
 
-基于RAG架构的智能问答接口。
+规划中的基于 RAG 架构的智能问答接口（当前为占位实现，见本章开头说明）。
 
 **接口信息**
 
 - 接口路径：POST /ai/chat
-- 认证要求：否（公开接口）
-- 接口描述：智能问答接口，支持流式响应
+- 认证要求：是（当前控制器未标注 `@Public()`，受全局 JWT 守卫保护）
+- 接口描述：规划为流式问答；当前为一次性 JSON 占位响应
 
 **请求参数**
 
@@ -2553,7 +2325,7 @@ GET方法用于查询数据，幂等操作，不修改服务器数据。POST方�
 
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
-| question | string | 是 | 用户问题 |
+| message | string | 是 | 用户问题（当前实现使用 `message`；下文示例中的 `question` 为规划字段） |
 | history | array | 否 | 对话历史，最多10轮 |
 | history[].role | string | 是 | 角色：user用户、assistant助手 |
 | history[].content | string | 是 | 对话内容 |
@@ -2590,13 +2362,13 @@ data: {"type": "done"}
 
 ### 14.2 图像识别
 
-对上传的图像进行内容识别。
+规划中对上传图像进行内容识别（当前为占位实现，返回空结果）。
 
 **接口信息**
 
 - 接口路径：POST /ai/recognize
-- 认证要求：否（公开接口）
-- 接口描述：图像识别接口
+- 认证要求：是（受全局 JWT 守卫保护）
+- 接口描述：规划中的图像识别；当前为占位响应
 
 **请求参数**
 
@@ -2630,7 +2402,7 @@ data: {"type": "done"}
 
 ### 14.3 获取对话历史
 
-获取用户的历史对话记录。
+规划中获取用户的历史对话记录（当前返回空列表）。
 
 **接口信息**
 
@@ -2669,9 +2441,82 @@ data: {"type": "done"}
 
 ---
 
-## 15. 错误码参考
+## 15. 游客端公开接口与埋点
 
-### 15.1 认证模块错误码
+> 本章接口全部标记 `@Public()`，无需 JWT。仅返回 `status=1 && delFlag=0` 的数据（公告为 `published`），下架/删除后游客端即时不可见。
+
+### 15.1 崖墓列表
+
+- 路径：GET /visitor/cliffs
+- 认证：否
+- 说明：返回全部在线崖墓，按 `orderNum` 排序；字段含 `mapLeft/mapTop/coverImage/modelUrl/viewCount/images/entrances/coffins`，ID 以字符串返回。
+
+```json
+{ "code": 200, "message": "success", "data": { "items": [], "total": 13 } }
+```
+
+### 15.2 崖墓详情
+
+- 路径：GET /visitor/cliffs/:id
+- 认证：否
+- 说明：未找到、已下架或已删除时返回 HTTP 404（`{"code":404,"message":"崖墓不存在"}`）。
+- 游客详情仅当 `modelUrl` 有值时才渲染 `model-viewer`，否则显示“该崖墓三维模型待补充”空态。
+
+### 15.3 石棺列表 / 详情
+
+- 路径：GET /visitor/coffins、GET /visitor/coffins/:id
+- 认证：否
+- 说明：列表返回 `items/total`；详情返回 `images`（四类成果图）与 `models`。
+
+### 15.4 全景列表 / 详情
+
+- 路径：GET /visitor/panoramas、GET /visitor/panoramas/:id
+- 认证：否
+- 说明：只返回在线场景；`category` 为 `air/ground/inner/outdoor`，前端把 `inner` 映射为“室内”。
+
+### 15.5 已发布公告
+
+- 路径：GET /visitor/notices?limit=5
+- 认证：否
+- 说明：只返回 `status=published` 的公告，`limit` 最大 20，默认 5。
+
+### 15.6 游客行为埋点
+
+- 路径：POST /visitor/events
+- 认证：否
+- 说明：写入操作日志；`cliff_view/coffin_view/panorama_view` 会累加对应浏览量；携带 `visitorId` 时更新在线访客（游客会话 30 分钟过期）。
+
+**请求参数**
+
+```json
+{
+  "visitorId": "浏览器生成的访客ID",
+  "event": "cliff_view",
+  "page": "cliff",
+  "targetId": "1",
+  "detail": "可选补充信息"
+}
+```
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| event | string | 是 | 事件标识，如 `cliff_view`、`coffin_stage_switch`、`panorama_switch` |
+| page | string | 否 | home / cliff / coffin / coffin-map / panorama |
+| targetId | string | 否 | 目标业务 ID |
+| detail | string | 否 | 交互明细，如视图名称 |
+| visitorId | string | 否 | 在线访客标识 |
+
+**响应示例**
+
+```json
+{ "code": 200, "message": "success", "data": { "recorded": true } }
+```
+
+---
+
+## 16. 错误码参考
+
+### 16.1 认证模块错误码
 
 | 错误码 | 说明 |
 |--------|------|
@@ -2684,7 +2529,7 @@ data: {"type": "done"}
 | 10007 | 验证码错误 |
 | 10008 | 验证码已过期 |
 
-### 15.2 系统模块错误码
+### 16.2 系统模块错误码
 
 | 错误码 | 说明 |
 |--------|------|
@@ -2698,7 +2543,7 @@ data: {"type": "done"}
 | 20008 | 文件大小超出限制 |
 | 20009 | 文件类型不支持 |
 
-### 15.3 业务模块错误码
+### 16.3 业务模块错误码
 
 | 错误码 | 说明 |
 |--------|------|
@@ -2710,7 +2555,7 @@ data: {"type": "done"}
 | 30006 | 目录不为空 |
 | 30007 | 存在下级数据 |
 
-### 15.4 AI模块错误码
+### 16.4 AI模块错误码
 
 | 错误码 | 说明 |
 |--------|------|

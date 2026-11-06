@@ -4,6 +4,9 @@
 -- 版本: v1.0
 -- 创建日期: 2026-05-22
 --
+-- 说明: 推荐使用 `npx prisma db seed`（prisma/seed.ts）生成完整演示数据（含图片、模型、全景、公告等）。
+--       本脚本仅提供最小化的 SQL 演示数据，崖墓乡镇/地址/简介、图片与模型记录不在此脚本内。
+--
 -- 前置条件:
 --   1. 已执行 数据库初始化脚本.sql 或 npx prisma migrate deploy
 --   2. 字典、geo_town 等基础数据已存在
@@ -25,6 +28,7 @@ DELETE FROM `biz_coffin_image`;
 DELETE FROM `biz_coffin_model`;
 DELETE FROM `biz_coffin`;
 DELETE FROM `biz_entrance`;
+DELETE FROM `biz_cliff_image`;
 DELETE FROM `biz_cliff`;
 DELETE FROM `biz_panorama_hotspot`;
 DELETE FROM `biz_panorama_viewpoint`;
